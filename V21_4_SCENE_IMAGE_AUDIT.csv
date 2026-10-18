@@ -1,0 +1,148 @@
+Scene ID,Scene title,Previous image,Reviewed image,Exists,Changed,Review
+abandoned_crane,The Hanging Crane,(fallback),assets/quarry_v6.jpg,YES,YES,Explicit scene review
+after_storm,The Captain,assets/exp_shipwreck.jpg,assets/v21_stormbound_cliffs.jpg,YES,YES,Explicit scene review
+allies_arrive,Those Who Remember,assets/v21_white_city.jpg,assets/v21_white_city.jpg,YES,NO,Explicit scene review
+archive_night,The Forbidden Archive,assets/v16_archive_night.jpg,assets/v16_archive_night.jpg,YES,NO,Explicit scene review
+ash_archive,Orders in Black Wax,assets/v21_ash_archive.jpg,assets/v21_ash_archive.jpg,YES,NO,Explicit scene review
+ash_canyon,The Broken Span,assets/v21_ruined_gorge.jpg,assets/v21_ruined_gorge.jpg,YES,NO,Explicit scene review
+ash_coast,The Order of Ash,assets/order_landing_bespoke.jpg,assets/order_landing_bespoke.jpg,YES,NO,Explicit scene review
+ash_prison,The Holding Pen,assets/v21_ash_prison.jpg,assets/v21_ash_prison.jpg,YES,NO,Explicit scene review
+ash_sails,Black Sails,assets/order_landing_bespoke.jpg,assets/order_landing_bespoke.jpg,YES,NO,Explicit scene review
+beach_triage,The Names of the Missing,assets/exp_shipwreck.jpg,assets/v21_shipwreck_dawn.jpg,YES,YES,Explicit scene review
+beacon_keeper,The Grounding Dais,assets/heart_v6.jpg,assets/heart_v6.jpg,YES,NO,Explicit scene review
+beacon_tower,The Beacon Tower,assets/white_city_finale_bespoke.jpg,assets/beacon_v6.jpg,YES,YES,Explicit scene review
+black_beach,The Black Beach,(fallback),assets/coast_v6.jpg,YES,YES,Explicit scene review
+bridge_aftermath,On the Far Side,assets/green_ruins_bespoke.jpg,assets/green_ruins_bespoke.jpg,YES,NO,Explicit scene review
+bridge_approach,The Ravine Before the Bridge,assets/troll_v6.jpg,assets/troll_v6.jpg,YES,NO,Explicit scene review
+bridge_parley,The Creature,assets/troll_v6.jpg,assets/v21_troll_guardian.jpg,YES,YES,Explicit scene review
+broken_keep,The Armoury of Three,assets/keep_v6.jpg,assets/keep_v6.jpg,YES,NO,Explicit scene review
+buried_exit,No Way Back,assets/exp_rootway.jpg,assets/exp_rootway.jpg,YES,NO,Explicit scene review
+buried_gallery,The Buried Gallery,assets/green_ruins_bespoke.jpg,assets/exp_rootway.jpg,YES,YES,Explicit scene review
+burning_courtyard,The Courtyard Below,assets/exp_whitecity.jpg,assets/siege_v6.jpg,YES,YES,Explicit scene review
+burning_lane,The Burning Lane,assets/exp_whitecity.jpg,assets/siege_v6.jpg,YES,YES,Explicit scene review
+camp_council,The First Night,assets/exp_camp.jpg,assets/exp_camp.jpg,YES,NO,Explicit scene review
+canyon_floor,Below the Broken Span,assets/v21_ruined_gorge.jpg,assets/v21_ruined_gorge.jpg,YES,NO,Explicit scene review
+cedar_hollow,Cedar Hollow,assets/forest_v6.jpg,assets/exp_jungle.jpg,YES,YES,Explicit scene review
+cellar_route,The Second Exit,assets/green_ruins_bespoke.jpg,assets/caves_v6.jpg,YES,YES,Explicit scene review
+civic_hall,The Civic Hall,assets/exp_whitecity.jpg,assets/siege_v6.jpg,YES,YES,Explicit scene review
+cliff_camp,Camp Above Black Beach,assets/v21_cliffside_ruins.jpg,assets/v21_cliffside_ruins.jpg,YES,NO,Explicit scene review
+cliff_route,The Sea-Cliff Road,assets/v21_cliffside_ruins.jpg,assets/v21_cliffside_ruins.jpg,YES,NO,Explicit scene review
+collapse,The Falling Mountain,assets/exp_rootway.jpg,assets/exp_rootway.jpg,YES,NO,Explicit scene review
+council,The Council of the Broken Kingdom,assets/serayne_council_bespoke.jpg,assets/serayne_council_bespoke.jpg,YES,NO,Explicit scene review
+crystal_fissure,The Crystal Fissure,(fallback),assets/exp_rootway.jpg,YES,YES,Explicit scene review
+cut_stone,Fields of Cut Stone,(fallback),assets/quarry_v6.jpg,YES,YES,Explicit scene review
+dawn,Dawn Over Aranor,assets/v21_white_city.jpg,assets/v21_white_city.jpg,YES,NO,Explicit scene review
+de,So funktioniert das Spiel,(fallback),assets/exp_jungle.jpg,YES,YES,Explicit scene review
+deck_pause,One Minute Before the Weather Turns,assets/v21_shipwreck_dawn.jpg,assets/lost_opening_v6.jpg,YES,YES,Explicit scene review
+deep_rootway,The Deep Rootway,assets/exp_rootway.jpg,assets/exp_rootway.jpg,YES,NO,Explicit scene review
+dust_camp,A Camp in the Dust,(fallback),assets/quarry_v6.jpg,YES,YES,Explicit scene review
+eagle_ledge,The Eagle Ledge,assets/ridge_v6.jpg,assets/ridge_v6.jpg,YES,NO,Explicit scene review
+east_camp,Camp Beside the River,assets/river_v6.jpg,assets/exp_marsh.jpg,YES,YES,Explicit scene review
+east_reeds,Reeds Above the Water,assets/river_v6.jpg,assets/exp_marsh.jpg,YES,YES,Explicit scene review
+east_river,The River Road,assets/river_v6.jpg,assets/exp_marsh.jpg,YES,YES,Explicit scene review
+echo_chamber,The Answering Stone,assets/v16_answering_stone.jpg,assets/v16_answering_stone.jpg,YES,NO,Explicit scene review
+en,How to Play,(fallback),assets/exp_jungle.jpg,YES,YES,Explicit scene review
+escape_cage,The River Culvert,assets/v16_goblin_capture.jpg,assets/v16_goblin_capture.jpg,YES,NO,Explicit scene review
+escape_coast,The Inland Escape,assets/order_landing_bespoke.jpg,assets/order_landing_bespoke.jpg,YES,NO,Explicit scene review
+final_cost,Hold the Heart,assets/v21_worldheart.jpg,assets/v21_worldheart.jpg,YES,NO,Explicit scene review
+final_road,The Last Road,assets/v21_white_city.jpg,assets/v21_white_city.jpg,YES,NO,Explicit scene review
+final_stand,The Last Stand,assets/white_city_finale_bespoke.jpg,assets/beacon_v6.jpg,YES,YES,Explicit scene review
+finale_crisis,Three Fires at Once,assets/white_city_finale_bespoke.jpg,assets/beacon_v6.jpg,YES,YES,Explicit scene review
+flooded_court,The Flooded Court,assets/green_ruins_bespoke.jpg,assets/green_ruins_v6.jpg,YES,YES,Explicit scene review
+fr,Comment jouer,(fallback),assets/exp_jungle.jpg,YES,YES,Explicit scene review
+fungal_hall,The Spore Hall,assets/caves_v6.jpg,assets/caves_v6.jpg,YES,NO,Explicit scene review
+goat_track,The Goat Track,(fallback),assets/exp_jungle.jpg,YES,YES,Explicit scene review
+goblin_border,Painted Shields,assets/v21_goblin_camp.jpg,assets/v21_goblin_camp.jpg,YES,NO,Explicit scene review
+goblin_capture,Guests in a Cage,assets/v21_goblin_camp.jpg,assets/v16_goblin_capture.jpg,YES,YES,Explicit scene review
+green_gate,The Green Gate,assets/v21_jungle_road.jpg,assets/green_ruins_bespoke.jpg,YES,YES,Explicit scene review
+hanging_platform,The Lower Maintenance Shelf,assets/exp_ridge.jpg,assets/v21_ruined_gorge.jpg,YES,YES,Explicit scene review
+heart_chamber,The Heart of Aranor,assets/v21_worldheart.jpg,assets/v21_worldheart.jpg,YES,NO,Explicit scene review
+heart_truth,The Heart Sigil,assets/exp_heart.jpg,assets/v21_worldheart.jpg,YES,YES,Explicit scene review
+heart_vision,Inside the Heart,assets/v21_heart_vision.jpg,assets/v21_heart_vision.jpg,YES,NO,Explicit scene review
+hidden_cartway,The Hidden Cartway,(fallback),assets/quarry_v6.jpg,YES,YES,Explicit scene review
+high_descent,The Hidden Descent,(fallback),assets/exp_jungle.jpg,YES,YES,Explicit scene review
+high_forest,The High Forest,assets/forest_v6.jpg,assets/exp_camp.jpg,YES,YES,Explicit scene review
+high_pass,The High Pass,assets/mountain_gate_bespoke.jpg,assets/mountain_v6.jpg,YES,YES,Explicit scene review
+hunter_trap,The Hunter’s Snare,assets/v16_goblin_capture.jpg,assets/v16_goblin_capture.jpg,YES,NO,Explicit scene review
+hunters_camp,Under Watch,assets/v21_goblin_camp.jpg,assets/v21_goblin_camp.jpg,YES,NO,Explicit scene review
+ice_bridge,The Ice Bridge,(fallback),assets/ridge_v6.jpg,YES,YES,Explicit scene review
+intro,The Resolute,assets/exp_prologue.jpg,assets/lost_opening_v6.jpg,YES,YES,Explicit scene review
+last_beacon,The Last Beacon,assets/v21_worldheart.jpg,assets/v21_worldheart.jpg,YES,NO,Explicit scene review
+lost_marsh,The Drowned Path,assets/v16_marsh_lights.jpg,assets/v16_marsh_lights.jpg,YES,NO,Explicit scene review
+lower_city,The Burning Lower City,assets/exp_whitecity.jpg,assets/siege_v6.jpg,YES,YES,Explicit scene review
+lower_rescue,Into the Lower Ward,assets/exp_whitecity.jpg,assets/siege_v6.jpg,YES,YES,Explicit scene review
+marsh_exit,The North Causeway,(fallback),assets/exp_marsh.jpg,YES,YES,Explicit scene review
+marsh_lights,Voices in the Reeds,assets/v16_marsh_lights.jpg,assets/v16_marsh_lights.jpg,YES,NO,Explicit scene review
+marsh_night,Moonleaf After Dark,assets/v21_marsh_moon.jpg,assets/v16_marsh_lights.jpg,YES,YES,Explicit scene review
+marsh_recovery,After the Voices,assets/exp_marsh.jpg,assets/v21_marsh_moon.jpg,YES,YES,Explicit scene review
+marsh_route,The Moon Marsh Road,assets/v21_marsh_moon.jpg,assets/exp_marsh.jpg,YES,YES,Explicit scene review
+marsh_shelter,Shelter of Woven Reeds,assets/v21_marsh_moon.jpg,assets/exp_marsh.jpg,YES,YES,Explicit scene review
+medicine_choice,The Bitter Medicine,assets/serayne_council_bespoke.jpg,assets/serayne_council_bespoke.jpg,YES,NO,Explicit scene review
+mirror_detour,The False Gallery,assets/v21_mirror_vault.jpg,assets/v21_mirror_vault.jpg,YES,NO,Explicit scene review
+mirror_vault,The Mirror Vault,assets/v21_mirror_vault.jpg,assets/v21_mirror_vault.jpg,YES,NO,Explicit scene review
+moon_pool,The Moon Pool,assets/v21_marsh_moon.jpg,assets/v21_marsh_moon.jpg,YES,NO,Explicit scene review
+mountain_gate,The Mountain Gate,assets/v21_mountain_gate.jpg,assets/v21_mountain_gate.jpg,YES,NO,Explicit scene review
+night_assault,Night on the Last Road,assets/exp_whitecity.jpg,assets/siege_v6.jpg,YES,YES,Explicit scene review
+nl,Zo speel je,(fallback),assets/exp_jungle.jpg,YES,YES,Explicit scene review
+old_ferry,The Old Ferry,assets/river_v6.jpg,assets/exp_marsh.jpg,YES,YES,Explicit scene review
+old_lift,The Old Lift,(fallback),assets/exp_rootway.jpg,YES,YES,Explicit scene review
+order_duel,Ash Trial,assets/order_landing_bespoke.jpg,assets/order_v6.jpg,YES,YES,Explicit scene review
+pass_camp,Camp Above the Clouds,(fallback),assets/ridge_v6.jpg,YES,YES,Explicit scene review
+quarry_exit,Above the Ash Camp,(fallback),assets/order_v6.jpg,YES,YES,Explicit scene review
+quarry_route,The Old Quarry Road,assets/quarry_v6.jpg,assets/quarry_v6.jpg,YES,NO,Explicit scene review
+quiet_fire,Fire Under Broken Stars,assets/exp_camp.jpg,assets/exp_camp.jpg,YES,NO,Explicit scene review
+rain_shelf,Rain on the Stone Shelf,assets/ridge_v6.jpg,assets/exp_jungle.jpg,YES,YES,Explicit scene review
+ravine_fall,Below the Old Road,assets/v21_ruined_gorge.jpg,assets/v21_ruined_gorge.jpg,YES,NO,Explicit scene review
+reed_islands,The Reed Islands,assets/v21_marsh_moon.jpg,assets/exp_marsh.jpg,YES,YES,Explicit scene review
+ridge_descent,Road into the Broken Kingdom,(fallback),assets/ridge_v6.jpg,YES,YES,Explicit scene review
+ridge_route,The Old King’s Ridge,assets/ridge_v6.jpg,assets/ridge_v6.jpg,YES,NO,Explicit scene review
+ridge_shrine,Shrine Without a Roof,assets/ridge_v6.jpg,assets/green_ruins_v6.jpg,YES,YES,Explicit scene review
+road,The Broken Road,assets/v21_jungle_road.jpg,assets/road_v6.jpg,YES,YES,Explicit scene review
+road_echo,Voices Along the Stones,assets/exp_jungle.jpg,assets/road_v6.jpg,YES,YES,Explicit scene review
+root_chamber,Chamber of Roots,(fallback),assets/exp_rootway.jpg,YES,YES,Explicit scene review
+root_tunnels,Under the Green Wall,assets/green_ruins_bespoke.jpg,assets/exp_rootway.jpg,YES,YES,Explicit scene review
+rootway_exit,Under the Mountain Gate,(fallback),assets/ridge_v6.jpg,YES,YES,Explicit scene review
+ruined_watch,A Ruined Watchtower,assets/ridge_v6.jpg,assets/exp_jungle.jpg,YES,YES,Explicit scene review
+salt_steps,Salt Steps,(fallback),assets/exp_jungle.jpg,YES,YES,Explicit scene review
+sea_cave_watch,Sea Cave Lookout,(fallback),assets/caves_v6.jpg,YES,YES,Explicit scene review
+sea_caves,The Blue Caves,assets/caves_v6.jpg,assets/caves_v6.jpg,YES,NO,Explicit scene review
+serayne_hub,An Evening in the Green Court,assets/green_court_v6.jpg,assets/green_court_v6.jpg,YES,NO,Explicit scene review
+shore_camp,The First Fire on Aranor,assets/v21_camp_sea.jpg,assets/exp_camp.jpg,YES,YES,Explicit scene review
+shore_rest,The First Fire on Aranor,assets/v21_camp_sea.jpg,assets/v21_camp_sea.jpg,YES,NO,Explicit scene review
+siege_choice,Two Fires,assets/exp_whitecity.jpg,assets/siege_v6.jpg,YES,YES,Explicit scene review
+siege_gate,The Siege of the White City,assets/exp_whitecity.jpg,assets/siege_v6.jpg,YES,YES,Explicit scene review
+siege_wave1,The First Wave,assets/exp_whitecity.jpg,assets/siege_v6.jpg,YES,YES,Explicit scene review
+six_mural,The Mural of Six,assets/mural_six_bespoke.jpg,assets/mural_six_bespoke.jpg,YES,NO,Explicit scene review
+smoke_shore,Smoke Over the Shore,assets/consequence.jpg,assets/exp_shipwreck.jpg,YES,YES,Explicit scene review
+spore_sick,Breathing Room,assets/green_ruins_bespoke.jpg,assets/caves_v6.jpg,YES,YES,Explicit scene review
+stone_ford,The Stone Ford,assets/river_v6.jpg,assets/exp_jungle.jpg,YES,YES,Explicit scene review
+stone_steps,Seven Hundred Steps,assets/ridge_v6.jpg,assets/ridge_v6.jpg,YES,NO,Explicit scene review
+storm,The Sky Breaks,assets/v21_stormbound_cliffs.jpg,assets/v21_stormbound_cliffs.jpg,YES,NO,Explicit scene review
+storm_shelf,The Storm Shelf,assets/v21_cliffside_ruins.jpg,assets/v21_cliffside_ruins.jpg,YES,NO,Explicit scene review
+survivor_camp,The Abandoned Camp,assets/v21_jungle_road.jpg,assets/green_ruins_bespoke.jpg,YES,YES,Explicit scene review
+thorne_choice,The Man Who Found Aranor,assets/v21_beacon_betrayal.jpg,assets/v16_thorne_flees.jpg,YES,YES,Explicit scene review
+thorne_flees,The Signal Ridge,assets/v21_beacon_betrayal.jpg,assets/v16_thorne_flees.jpg,YES,YES,Explicit scene review
+traitor_reveal,The Silver Key,assets/v21_beacon_betrayal.jpg,assets/thorne_v6.jpg,YES,YES,Explicit scene review
+troll,The Bridge of Roots,assets/v21_troll_guardian.jpg,assets/v21_troll_guardian.jpg,YES,NO,Explicit scene review
+troll_chase,The Ravine Run,assets/v21_troll_guardian.jpg,assets/troll_v6.jpg,YES,YES,Explicit scene review
+undercliff_wreck,Beneath the Cliffs,assets/v21_shipwreck_dawn.jpg,assets/exp_shipwreck.jpg,YES,YES,Explicit scene review
+undergate_chasm,The Road Under the Gate,assets/mountain_gate_bespoke.jpg,assets/v21_ruined_gorge.jpg,YES,YES,Explicit scene review
+underground_river,The Underground River,(fallback),assets/exp_rootway.jpg,YES,YES,Explicit scene review
+vael_parley,Commander Vael,assets/order_landing_bespoke.jpg,assets/order_landing_bespoke.jpg,YES,NO,Explicit scene review
+vault_puzzle,The Vault of Six,assets/v21_mountain_gate.jpg,assets/v21_mirror_vault.jpg,YES,YES,Explicit scene review
+waiting_reunion,At the Rendezvous,(fallback),assets/exp_camp.jpg,YES,YES,Explicit scene review
+wall_archers,The Archer Line,assets/exp_whitecity.jpg,assets/siege_v6.jpg,YES,YES,Explicit scene review
+wall_breach,The Broken Parapet,(fallback),assets/siege_v6.jpg,YES,YES,Explicit scene review
+wall_push,Steps to the Wall,assets/exp_whitecity.jpg,assets/siege_v6.jpg,YES,YES,Explicit scene review
+watch_peak,Watch Peak,(fallback),assets/ridge_v6.jpg,YES,YES,Explicit scene review
+watchtower_ambush,The Fallen Watchtower,assets/watchtower_ambush_v18.jpg,assets/watchtower_ambush_v18.jpg,YES,NO,Explicit scene review
+wave,The Wave,assets/v21_stormbound_cliffs.jpg,assets/storm_v6.jpg,YES,YES,Explicit scene review
+west_descent,The Long Descent,assets/ridge_v6.jpg,assets/exp_jungle.jpg,YES,YES,Explicit scene review
+west_ridge,The Western Ridge,assets/ridge_v6.jpg,assets/ridge_v6.jpg,YES,NO,Explicit scene review
+whisper_ruins,The Whispering Ruins,assets/green_ruins_bespoke.jpg,assets/green_ruins_bespoke.jpg,YES,NO,Explicit scene review
+white_city_camp,Before the White City,assets/v21_white_city.jpg,assets/v21_white_city.jpg,YES,NO,Explicit scene review
+wolf_pursuit,The Running Hunt,assets/v21_wolf_ring.jpg,assets/v21_wolf_ring.jpg,YES,NO,Explicit scene review
+wolf_ring,The Silent Ring,assets/v21_wolf_ring.jpg,assets/v21_wolf_ring.jpg,YES,NO,Explicit scene review
+wolf_sign,Signs in the Mud,assets/forest_v6.jpg,assets/exp_jungle.jpg,YES,YES,Explicit scene review
+wreck,A Shore Beneath Unknown Stars,assets/v21_shipwreck_dawn.jpg,assets/v21_shipwreck_dawn.jpg,YES,NO,Explicit scene review
+wreck_fire,Fire in the Wreckage,assets/v21_camp_sea.jpg,assets/v21_camp_sea.jpg,YES,NO,Explicit scene review
