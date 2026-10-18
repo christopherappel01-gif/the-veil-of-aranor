@@ -35,7 +35,7 @@ function gearConditionText(p){const g=p?.gearUpgrades||{},c=Number(g.condition??
 const portraitImages={Knight:['assets/knight_1.jpg','assets/knight_2.jpg','assets/knight_3.jpg','assets/knight_4.jpg'],Ranger:['assets/ranger_1.jpg','assets/ranger_2.jpg','assets/ranger_3.jpg','assets/ranger_4.jpg'],Thief:['assets/thief_1.jpg','assets/thief_2.jpg','assets/thief_3.jpg','assets/thief_4.jpg'],Mage:['assets/mage_1.jpg','assets/mage_2.jpg','assets/mage_3.jpg','assets/mage_4.jpg'],Monk:['assets/monk_1.jpg','assets/monk_2.jpg','assets/monk_3.jpg','assets/monk_4.jpg'],Engineer:['assets/engineer_1.jpg','assets/engineer_2.jpg','assets/engineer_3.jpg','assets/engineer_4.jpg']};
 const portraitChoice={create:1,join:1};
 const portraitPath=(cls,n=1)=>portraitImages[cls]?.[Math.max(0,Math.min(3,Number(n||1)-1))]||portraitImages[cls]?.[0]||'assets/portraits.jpg';
-const npcInfo={Veyra:{name:'Captain Veyra',img:'/assets/npc_veyra.jpg',tag:'Expedition captain'},Nim:{name:'Nim',img:'/assets/npc_nim.jpg',tag:'Goblin survivor'},Serayne:{name:'Lady Serayne',img:'/assets/npc_serayne.jpg',tag:'Leader of the Green Court'},Thorne:{name:'Elias Thorne',img:'/assets/npc_thorne.jpg',tag:'Scholar of Aranor'},Vael:{name:'Commander Vael',img:'/assets/npc_vael.jpg',tag:'Commander of the Order of Ash'}};
+const npcInfo={Veyra:{name:'Captain Veyra',img:'/assets/npc_veyra.jpg?v=213',tag:'Expedition captain'},Nim:{name:'Nim',img:'/assets/npc_nim.jpg?v=213',tag:'Goblin survivor'},Serayne:{name:'Lady Serayne',img:'/assets/npc_serayne.jpg?v=213',tag:'Leader of the Green Court'},Thorne:{name:'Elias Thorne',img:'/assets/npc_thorne.jpg?v=213',tag:'Scholar of Aranor'},Vael:{name:'Commander Vael',img:'/assets/npc_vael.jpg?v=213',tag:'Commander of the Order of Ash'}};
 let me=null,state=null,myStats=emptyStats(),roomCode='';
 let rollRequest=null;
 let audioOn=true,ambientOn=readJson('lostExpeditionAmbient')!==false,lastSceneSeen=null,lastRollSeen='',dismissedRollKey='',previousSnapshot=null,suppressNextSceneReveal=false,pendingStoryBridge=null;
@@ -153,7 +153,7 @@ socket.on('secret',x=>{const box=$('secret');box.innerHTML=`<b>🔒 Private ${es
 socket.on('state',s=>{
   const old=state;if(rollRequest){const currentId=rollRequest.challengeId,incomingId=s.pending?.challengeId||null;if(!s.pending||s.pending.failed||incomingId!==currentId)clearRollRequest();} state=s;roomCode=s.code||roomCode;
   if(!me)return;
-  const p=s.players.find(x=>x.id===me);if(p?.ready&&used()===0)myStats={...p.stats};
+  const p=s.players.find(x=>x.id===me);if(p?.ready&&used()===0)myStats={...emptyStats(),...p.stats};
   if(old) handleAtmosphere(old,s);
   if(s.phase==='lobby')renderLobby();else if(s.phase==='playing')renderGame();else if(s.phase==='ended')renderEnding();renderVoiceUi();syncVoicePeers();if($('heroSheetModal')&&!$('heroSheetModal').classList.contains('hidden'))renderHeroSheet();
 });
@@ -164,7 +164,7 @@ function renderLobby(){
   $('heroGift').innerHTML=`<b>${classInfo[p.cls].gift.split(' — ')[0]}</b> — ${esc(classInfo[p.cls].gift.split(' — ')[1]||'')}`;
   $('readyBadge').textContent=p.ready?'Ready':'Building';$('readyBadge').classList.toggle('ready',p.ready);
   $('stats').innerHTML='';
-  skills.forEach(sk=>{const row=document.createElement('div');row.className='stat '+(classInfo[p.cls].fav.includes(sk)?'favored':'');row.innerHTML=`<span>${classInfo[p.cls].fav.includes(sk)?'<span class="fav-star">★</span> ':''}${sk}</span><button type="button" aria-label="Decrease ${sk}">−</button><strong>${myStats[sk]}</strong><button type="button" aria-label="Increase ${sk}">+</button>`;const bs=row.querySelectorAll('button');bs[0].onclick=()=>{if(!p.ready&&myStats[sk]>0){myStats[sk]--;renderLobby();}};bs[1].onclick=()=>{if(!p.ready&&myStats[sk]<5&&used()<20){myStats[sk]++;renderLobby();}};bs.forEach(b=>b.disabled=p.ready);$('stats').appendChild(row);});
+  skills.forEach(sk=>{const row=document.createElement('div');row.className='stat '+(classInfo[p.cls].fav.includes(sk)?'favored':'');row.innerHTML=`<span>${classInfo[p.cls].fav.includes(sk)?'<span class="fav-star">★</span> ':''}${sk}</span><button type="button" aria-label="Decrease ${sk}">−</button><strong>${Number(myStats[sk]||0)}</strong><button type="button" aria-label="Increase ${sk}">+</button>`;const bs=row.querySelectorAll('button');bs[0].onclick=()=>{if(!p.ready&&Number(myStats[sk]||0)>0){myStats[sk]=Number(myStats[sk]||0)-1;renderLobby();}};bs[1].onclick=()=>{if(!p.ready&&Number(myStats[sk]||0)<5&&used()<20){myStats[sk]=Number(myStats[sk]||0)+1;renderLobby();}};bs.forEach(b=>b.disabled=p.ready);$('stats').appendChild(row);});
   const arcanaHelp=$('arcanaGuidance');
   if(arcanaHelp){
     const mage=p.cls==='Mage';
@@ -173,7 +173,7 @@ function renderLobby(){
       :'<strong>✦ Arcana — available to every hero</strong><span>You may assign points to Arcana to understand magical symbols and ancient devices. Only Mages can cast Mana-powered spells. You do not need Arcana to succeed in the adventure.</span>';
   }
   $('pointsUsed').textContent=used();$('pointsBar').style.width=Math.min(100,used()/20*100)+'%';
-  $('recommendedBtn').disabled=p.ready;$('recommendedBtn').onclick=()=>{myStats={...classInfo[p.cls].build};renderLobby();};
+  $('recommendedBtn').disabled=p.ready;$('recommendedBtn').onclick=()=>{myStats={...emptyStats(),...classInfo[p.cls].build};renderLobby();};
   $('readyBtn').disabled=p.ready||used()!==20;$('readyBtn').textContent=p.ready?'✓ Character Locked':'Lock Character';$('readyBtn').onclick=()=>socket.emit('setCharacter',{stats:myStats});
   $('playerCount').textContent=`${state.players.length} / 6`;
   $('lobbyPlayers').innerHTML=state.players.map(x=>playerCard(x,false)).join('');
@@ -518,7 +518,7 @@ function npcMomentText(key,scene){
     Vael:'“Power does not become harmless because good people are afraid to use it.”'
   };return lines[key]||'';
 }
-function renderNpcMoment(scene){const box=$('npcMoment'),key=npcForScene(scene);if(!box)return;if(!key){box.classList.add('hidden');box.innerHTML='';return;}const n=npcInfo[key],rel=state?.journal?.people?.[String(key).toLowerCase()]||null;const memory=rel?.status?`<div class="npc-memory"><b>They remember you:</b> ${esc(rel.status)}${rel.note?' — '+esc(rel.note):''}</div>`:'';box.innerHTML=`<img src="${n.img}" alt="${esc(n.name)}" onerror="this.onerror=null;this.src='/assets/portraits.jpg'"><div><div class="eyebrow">${esc(n.tag)}</div><h3>${esc(n.name)}</h3><p>${esc(npcMomentText(key,scene))}</p>${memory}</div>`;box.classList.remove('hidden');}
+function renderNpcMoment(scene){const box=$('npcMoment'),key=npcForScene(scene);if(!box)return;if(!key){box.classList.add('hidden');box.innerHTML='';return;}const n=npcInfo[key],rel=state?.journal?.people?.[String(key).toLowerCase()]||null;const memory=rel?.status?`<div class="npc-memory"><b>They remember you:</b> ${esc(rel.status)}${rel.note?' — '+esc(rel.note):''}</div>`:'';box.innerHTML=`<img src="${n.img}" alt="${esc(n.name)}" onerror="this.onerror=null;this.src='/assets/portraits.jpg'"><div><div class="eyebrow">${esc(n.tag)}</div><h3>${esc(n.name)}</h3><p>${esc(npcMomentText(key,scene))}</p>${memory}</div>`;box.classList.remove('hidden'); const portrait=box.querySelector('img');if(portrait)portrait.onerror=()=>{portrait.onerror=null;portrait.src='/assets/knight_1.jpg?v=213';};}
 function finaleCallbackCards(){const a=state.allies||{},f=state.flags||{},items=state.items||[],cards=[];
   if(a.nim||a.goblin_clan)cards.push(['🦴','Because you helped Nim','Goblin scouts know the old passages and answer your call.']);
   if(f.boats)cards.push(['🛶','Because you saved the lifeboats','Veyra’s surviving crew can reach the eastern shore.']);

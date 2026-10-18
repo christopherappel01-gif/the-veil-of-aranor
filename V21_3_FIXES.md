@@ -1,0 +1,1 @@
+V21.3 rebuild: fixed undefined Arcana value in non-Mage recommended builds, refreshed app shell cache, cache-busted landing and NPC assets, corrected CSS grid, checked asset files. For live images verify Render paths /assets/v21_landing.jpg and /assets/npc_veyra.jpg return images.
