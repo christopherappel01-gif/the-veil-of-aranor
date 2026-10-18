@@ -282,3 +282,10 @@ body.threat-high .game-shell{box-shadow:inset 0 0 85px rgba(102,23,23,.10)}body.
 /* V21.2: deployment-safe landing art, no map overlay on the page */
 body::before{display:none!important;content:none!important}
 .home-screen .hero-banner--opening{background-image:linear-gradient(90deg,rgba(3,7,13,.82) 0%,rgba(3,7,13,.46) 43%,rgba(3,7,13,.08) 82%),linear-gradient(0deg,rgba(3,7,13,.72),transparent 48%),url('/assets/v21_landing.jpg')!important;background-size:cover!important;background-position:center center!important}
+
+/* V21.3: fixed hero skill grid & verified art, with strong background fallback */
+.home-screen .hero-banner--opening{background-image:linear-gradient(90deg,rgba(4,9,18,.86) 0%,rgba(4,9,18,.38) 50%,rgba(4,9,18,.12) 100%),url('/assets/v21_landing.jpg?v=213'),url('/assets/lost_home.jpg?v=213')!important;background-color:#132138!important;background-repeat:no-repeat!important;background-size:cover!important;background-position:center!important;}
+.stats-grid .stat{grid-template-columns:minmax(0,1fr) 40px 32px 40px!important;column-gap:8px!important;overflow:hidden!important;}
+.stats-grid .stat>span{overflow:hidden!important;white-space:nowrap!important;text-overflow:ellipsis!important;}
+.stats-grid .stat>strong{min-width:0;overflow:hidden;white-space:nowrap;font-variant-numeric:tabular-nums;}
+@media(max-width:830px){.stats-grid{grid-template-columns:1fr!important}}
