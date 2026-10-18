@@ -614,7 +614,7 @@ const classNarrativeInsights={
 function renderGame(){
   show('game');const sc=scenes[state.scene];if(!sc)return;updateAmbience(state.scene);renderVoiceUi();syncVoicePeers();
   $('sceneTitle').textContent=sc.title;$('sceneText').innerHTML=sc.text.map(x=>`<p>${x}</p>`).join('')+(state.scene==='intro'?openingCompanyHtml():'');$('mission').textContent=sc.mission;const bridge=$('storyBridge');if(bridge){if(pendingStoryBridge&&pendingStoryBridge.scene===state.scene){bridge.innerHTML=`<p>${esc(pendingStoryBridge.text)}</p>`;bridge.classList.remove('hidden');}else bridge.classList.add('hidden');}
-  const art=sceneArt[state.scene]||['🧭',sc.title],image=sceneImages[state.scene]||'assets/lost_home.jpg';const [icon,caption]=art;$('sceneArt').className=`scene-art ${state.scene}`;$('sceneArt').style.backgroundImage=`linear-gradient(0deg,rgba(5,10,18,.42),rgba(5,10,18,0) 44%),url('${image}')`;$('sceneArt').querySelector('.scene-art__caption').textContent=caption;renderNpcMoment(state.scene);renderFinaleCallbacks(state.scene);renderQualityPanels(state.scene);
+  const art=sceneArt[state.scene]||['🧭',sc.title],image=sceneImages[state.scene]||'assets/lost_home.jpg';const [icon,caption]=art;$('sceneArt').className=`scene-art ${state.scene}`;$('sceneArt').style.backgroundImage=`url('${image}')`;$('sceneArt').querySelector('.scene-art__caption').textContent=caption;renderNpcMoment(state.scene);renderFinaleCallbacks(state.scene);renderQualityPanels(state.scene);
   $('round').textContent=state.round;$('hope').textContent=state.hope;$('threat').textContent=state.threat;$('supplies').textContent=state.supplies;$('relics').textContent=state.relics;if($('coin'))$('coin').textContent=state.coin||0;if($('pressureNote')){$('pressureNote').textContent=threatStatusText(state.threat);$('pressureNote').className='pressure-note '+(state.threat>=5?'high':state.threat>=3?'mid':'low');}
   const active=state.players[state.activeIndex],mine=active?.id===me,waiting=(state.groups||[]).find(g=>g.id===state.currentGroupId)?.waitingMerge;$('turnNotice').className='turn-notice'+(mine?' mine':'');$('turnNotice').innerHTML=waiting?`<b>${esc(state.currentGroupName||'Your group')} has reached the rendezvous.</b> The other group is still on its route.`:mine?`<b>Your turn, ${esc(active.name)}.</b> Choose what your hero does next.${state.groups?.length>1?` <span class="group-badge">${esc(state.currentGroupName)}</span>`:''}`:`Waiting for <b>${esc(active?.name||'')}</b>${state.groups?.length>1?` · ${esc((state.groups||[]).find(g=>(g.playerIds||[]).includes(active?.id))?.name||'another group')}`:''}.`;
   $('choices').innerHTML=''; if(!state.pending){const extra=specialistChoiceSets[state.scene]?.[active?.cls];const actionChoices=extra?[...sc.choices,extra]:sc.choices;actionChoices.forEach(choice=>{const [id,label,note]=choice,available=requirementSatisfied(choice)&&(!id.startsWith('spell_')||(active?.milestone||0)>=1&&(active?.energy||0)>=(id==='spell_seal'?2:1));const b=document.createElement('button');b.className='choice';b.disabled=!mine||!available;b.innerHTML=`<b>${label}</b><span>${note}${available?'':' · NOT CURRENTLY AVAILABLE'}</span>`;b.onclick=()=>socket.emit('chooseAction',{action:id});$('choices').appendChild(b);});}
@@ -982,7 +982,7 @@ function showSceneReveal(scene){
   const sc=scenes[scene]; if(!sc||scene===lastSceneSeen)return; lastSceneSeen=scene;
   if(scene==='storm'||scene==='wave')playSound('storm'); else if(scene==='troll')playSound('troll');else if(scene==='watchtower_ambush')veilCue('ambush');else if(['heart_chamber','heart_vision','mountain_gate'].includes(scene))veilCue('magic');
   const overlay=$('sceneReveal'); if(!overlay)return;const sk=sceneKind(scene)[1];if(sk==='battle'&&scene!=='watchtower_ambush')veilCue('battle');else if(sk==='rest'||sk==='conversation')playSound('dialogue');
-  overlay.style.backgroundImage=`linear-gradient(rgba(3,8,15,.2),rgba(3,8,15,.82)),url('${sceneImages[scene]||'assets/lost_home.jpg'}')`;
+  overlay.style.backgroundImage=`url('${sceneImages[scene]||'assets/lost_home.jpg'}')`;
   $('revealKicker').textContent=scene==='troll'?'RANDOM EVENT':'THE VEIL OF ARANOR';
   $('revealTitle').textContent=sc.title;
   $('revealText').textContent=scene==='troll'?'Something huge moves beneath the bridge.':scene==='storm'?'The calm is over. The sky breaks.':sc.mission;
@@ -991,7 +991,7 @@ function showSceneReveal(scene){
 }
 function showSpotlight(kicker,title,text,image='assets/portraits.jpg',ms=2500){
   const overlay=$('sceneReveal'); if(!overlay)return;
-  overlay.style.backgroundImage=`linear-gradient(rgba(3,8,15,.22),rgba(3,8,15,.82)),url('${image}')`;
+  overlay.style.backgroundImage=`url('${image}')`;
   $('revealKicker').textContent=kicker;
   $('revealTitle').textContent=title;
   $('revealText').textContent=text;
