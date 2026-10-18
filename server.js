@@ -1,0 +1,885 @@
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+const path = require('path');
+const crypto = require('crypto');
+const zlib = require('zlib');
+
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server, { pingTimeout: 20000, pingInterval: 10000 });
+const PORT = process.env.PORT || 3000;
+app.use(express.static(path.join(__dirname, 'public')));
+app.get('/health', (req, res) => res.status(200).send('ok'));
+// Optional professional translation provider. A DeepL key enables complete dynamic
+// narrative/interface translation. Do not transmit players' names, PINs or messages.
+app.use(express.json({limit:'60kb'}));
+const translationCache=new Map();
+app.post('/api/translate',async(req,res)=>{
+  const lang=req.body?.lang,strings=req.body?.texts;
+  if(!['nl','fr','de'].includes(lang)||!Array.isArray(strings)||strings.length>35||strings.some(t=>typeof t!=='string'||t.length>2600))return res.status(400).json({error:'Invalid translation request'});
+  const key=process.env.DEEPL_AUTH_KEY;
+  if(!key)return res.status(503).json({error:'Translation service not configured'});
+  const endpoint=process.env.DEEPL_API_URL||(key.endsWith(':fx')?'https://api-free.deepl.com/v2/translate':'https://api.deepl.com/v2/translate');
+  try{
+    const missing=[...new Set(strings.filter(t=>!translationCache.has(lang+'|'+t)))];
+    if(missing.length){const body=new URLSearchParams();body.set('target_lang',lang.toUpperCase());body.set('source_lang','EN');for(const t of missing)body.append('text',t);
+      const response=await fetch(endpoint,{method:'POST',headers:{'Authorization':'DeepL-Auth-Key '+key,'Content-Type':'application/x-www-form-urlencoded'},body,signal:AbortSignal.timeout(12000)});
+      if(!response.ok)throw Error('Translation provider status '+response.status);
+      const data=await response.json();if(!data.translations||data.translations.length!==missing.length)throw Error('Unexpected translation response');
+      missing.forEach((t,i)=>translationCache.set(lang+'|'+t,data.translations[i].text));if(translationCache.size>10000)translationCache.clear();
+    }
+    res.json({texts:strings.map(t=>translationCache.get(lang+'|'+t)||t)});
+  }catch(err){res.status(502).json({error:'Translation provider unavailable'});}
+});
+
+
+const rooms = new Map();
+const classes = ['Knight','Ranger','Thief','Mage','Monk','Engineer'];
+const skills = ['Strength','Agility','Endurance','Awareness','Survival','Stealth','Knowledge','Craft','Influence','Spirit','Arcana'];
+const backgrounds = ['Noble','Outlander','Scholar','Sailor','Streetwise','Artisan'];
+const backgroundEdges = {Noble:'Influence',Outlander:'Survival',Scholar:'Knowledge',Sailor:'Endurance',Streetwise:'Stealth',Artisan:'Craft'};
+const talents = {
+  Knight:{Guardian:{desc:'When you support another hero, your successful support grants +3 instead of +2.',kind:'support'},Champion:{desc:'Gain +1 on dangerous Strength or Endurance checks.',kind:'danger'}},
+  Ranger:{Pathfinder:{desc:'Gain +1 on Survival or Awareness checks used to travel, scout or track.',kind:'skill'},Deadeye:{desc:'Gain +1 on dangerous Agility or Awareness checks.',kind:'danger'}},
+  Thief:{Shadow:{desc:'Gain +1 on Stealth checks and infiltration challenges.',kind:'skill'},Saboteur:{desc:'Gain +1 on Craft checks involving locks, traps or mechanisms.',kind:'skill'}},
+  Mage:{Seer:{desc:'Gain +1 on Awareness or Spirit checks involving magic or hidden truth.',kind:'skill'},Elementalist:{desc:'Gain +1 on dangerous Knowledge or Spirit checks.',kind:'danger'}},
+  Monk:{Healer:{desc:'Your Heroic Intervention succeeds on 6+ instead of 7+.',kind:'intervene'},Warden:{desc:'Gain +1 on dangerous Spirit or Endurance checks.',kind:'danger'}},
+  Engineer:{Inventor:{desc:'Gain +1 on Craft checks involving improvised solutions.',kind:'skill'},Architect:{desc:'Gain +1 on Craft or Knowledge during Team Challenges.',kind:'team'}}
+};
+const classGear = {Knight:'Sunsteel Buckler',Ranger:'Whisperstring Bow',Thief:'Masterwork Picks',Mage:'Rune Staff',Monk:'Dawn Pendant',Engineer:'Aranorian Multi-tool'};
+const itemCatalog = {
+  goblin_token:{name:'Goblin Bone Token',icon:'🦴',desc:'Nim’s carved token. Some goblin clans will recognise it.'},
+  silver_key:{name:'The Silver Key',icon:'🗝️',desc:'An unnaturally cold key engraved with a six-pointed star.'},
+  healing_draught:{name:'Healing Draught',icon:'🧪',desc:'Single-use. Removes one wound.'},
+  moon_lantern:{name:'Moon Lantern',icon:'🏮',desc:'Reveals hidden writing, magical trails and concealed doors.'},
+  map_fragment:{name:'Ancient Map Fragment',icon:'🗺️',desc:'One piece of a hidden route beneath the mountain.'},
+  smoke_vial:{name:'Smoke Vial',icon:'💨',desc:'Single-use. Escape one dangerous ambush without a roll.'},
+  sunsteel_shield:{name:'Sunsteel Shield',icon:'🛡️',desc:'Once, turn a dangerous physical setback into a success.'},
+  glassfire_orb:{name:'Glassfire Orb',icon:'🔮',desc:'Once, break a powerful magical barrier automatically.'},
+  architects_lens:{name:"Architect's Lens",icon:'🔍',desc:'Once, reveal the true function of an ancient mechanism.'},
+  signal_horn:{name:"Captain Veyra's Signal Horn",icon:'📯',desc:'Call allies who still owe the expedition a debt.'},
+  beacon_shard:{name:'Beacon Shard',icon:'💠',desc:'Powerful and unstable. It can awaken dormant Aranorian machinery.'},
+  ash_cipher:{name:'Ash Cipher Disc',icon:'⚙️',desc:'Decodes Order of Ash field signals and sealed messages.'},
+  heart_sigil:{name:'Heart Sigil',icon:'✦',desc:'A living-metal seal attuned to the Heart of Aranor.'},
+  aranorian_alloy:{name:'Aranorian Alloy Blank',icon:'◈',desc:'A piece of living alloy recovered from old machinery. A skilled smith can bind it into a hero’s gear.'},
+  veyra_compass:{name:"Veyra's Storm Compass",icon:'🧭',desc:'A battered compass that points toward active beacon lines rather than north.'},
+  keeper_crystal:{name:'Beacon Grounding Crystal',icon:'💎',desc:'A tuned crystal used by Aranorian keepers to transfer load between control stations.'},
+  wayfinder_compass:{name:'Wayfinder Compass',icon:'🧭',desc:'A raider compass that twitches toward old Aranorian roads, hidden turns and safer approaches.'}
+};
+
+const contextualClues = {
+  intro:{Mage:'The lightning repeats three arcane shapes. The coming storm may be summoned.',Ranger:'Every seabird is fleeing inland toward the unknown land, not away from the storm.'},
+  storm:{Engineer:'Something solid struck the hull before the largest wave arrived.',Knight:'The crew are one calm command away from holding together.'},
+  wreck:{Ranger:'The tracks deliberately avoid soft sand. Whoever made them understands pursuit.',Thief:'One set of prints stops beside the supply crates, yet nothing obvious was taken.'},
+  road:{Mage:'The roadside symbols are wards designed to keep something inside the island.',Monk:'The carved faces do not look hostile; they resemble old road-wardens set here to witness travellers, not judge them.'},
+  troll:{Monk:'The troll is wounded and frightened, not hunting. Its attention keeps returning to the child.',Knight:'It protects the child more fiercely than it guards the bridge.'},
+  green_gate:{Engineer:'The gate is a machine disguised as architecture.',Mage:'Its pulse matches the golden beacon seen from the sea.'},
+  whisper_ruins:{Thief:'Someone recently reset these traps behind them.',Ranger:'The tracks belong to expedition boots. Some missing crew survived.'},
+  six_mural:{Monk:'The six figures are roles, not portraits: guardian, hunter, shadow, seer, healer and maker.',Mage:'The inscription says the six are needed when “the Heart wakes beneath the mountain.”'},
+  goblin_border:{Ranger:'The sentries are warning you away, not preparing an attack.',Monk:'Their shield-mark matches Nim’s token.'},
+  council:{Knight:'Serayne’s guards are positioned against an attack from inside the city, not outside it.',Thief:'Someone at this council is passing messages through the old drainage channels.'},
+  broken_keep:{Knight:'The keep fell during an internal civil war.',Engineer:'One armoury door still has a live counterweight.'},
+  ash_coast:{Knight:'The black sails carry the crest of the supposedly extinct Order of Ash.',Thief:'Their field locks use the same six-pointed mark as the Silver Key.'},
+  vael_parley:{Monk:'Vael believes what he says. He is dangerous, but not dishonest about his goal.',Mage:'The shard he carries is amplifying his certainty.'},
+  traitor_reveal:{Thief:'The Silver Key fits a hidden compartment in Thorne’s case.',Engineer:'The device that drew the Resolute off course is Aranorian.'},
+  mountain_gate:{Engineer:'Three map fragments would align the mechanism without forcing it.',Mage:'Opening this gate weakens a seal deeper inside.'},
+  heart_chamber:{Monk:'The Heart reacts to fear and command, but it is not a creature.',Mage:'The beacon network is a governor on raw magical power, not merely a prison.'},
+  final_road:{Ranger:'Old trails converge here. Allies could reach you if they knew to come.',Knight:'The Order is moving on the Last Beacon tonight.'},
+  last_beacon:{Engineer:'The controls support three stable configurations: seal, opening, or shared stewardship.',Monk:'No choice is clean. The question is who bears the cost afterward.'}
+};
+
+// V18: Character-specific understanding is free information, not a power spend.
+// All six classes have discoveries on major and alternative routes.
+Object.assign(contextualClues,{
+  sea_caves:{Mage:'The blue mineral light pulses in time with the beacon, but it is not fire.',Engineer:'The submerged stair was deliberately engineered as an escape route.'},
+  road_echo:{Mage:'One carved line is a ward of warning, not an instruction to worship.',Ranger:'Someone has walked this old route recently and tried to cover their tracks.'},
+  echo_chamber:{Mage:'The voices are amplified memories trapped in the stone. They cannot command you unless you answer.',Monk:'The chamber feeds on panic; a calm voice may give everyone time to escape.',Engineer:'The closing doors move on counterweights embedded behind the mural.'},
+  marsh_lights:{Mage:'The blue lights are echoes of travellers, not living guides.',Ranger:'There is firm ground beyond the reeds; the voices are drawing you away from it.'},
+  archive_night:{Mage:'The runes were rewritten after the city fell. Someone concealed the original prophecy.',Thief:'A secret drawer has been opened in the archive recently.'},
+  mirror_vault:{Mage:'The mirrors show possible memories, not predictions; one can be broken without hurting the others.',Thief:'The left passage repeats every seventh footstep, revealing a hidden loop.',Engineer:'The mirror mechanism has a physical reset lever beyond the false wall.'},
+  heart_vision:{Mage:'The vision is holding on to one emotion; naming it aloud may weaken its grip.',Monk:'The person inside the vision can still hear a familiar voice.'},
+  heart_truth:{Mage:'The Heart can be guided, but not safely owned by one person.',Knight:'Anyone operating the Heart alone will be exposed; allies should protect the keeper.'},
+  final_stand:{Mage:'The incoming pulse can be dispersed among several control rings, buying the company time.',Engineer:'The three control rings must be held in sequence, not simultaneously.',Knight:'The attackers can be funnelled into one narrow approach.'},
+  final_cost:{Mage:'No final spell can erase the cost: magic changes how it is shared.',Monk:'The burden need not be borne by the strongest hero alone.'},
+  last_beacon:{Mage:'The Beacon reflects the intent of the people operating it; the moral choice is not merely technical.',Thief:'The outer control locks are old enough to be bypassed quietly.'}
+});
+
+const emptyStats = () => Object.fromEntries(skills.map(s => [s,0]));
+const cleanName = s => String(s||'').trim().slice(0,18).replace(/[<>]/g,'');
+const rollD6 = () => 1 + crypto.randomInt(6);
+function roomCode(){let c;do{c=crypto.randomBytes(4).toString('hex').slice(0,5).toUpperCase();}while(rooms.has(c));return c;}
+function getPlayer(room,id){return room.players.find(p=>p.id===id);}
+function socketPlayer(room,socket){return getPlayer(room,socket.data.playerId);}
+function addLog(room,text){room.log.push(text);if(room.log.length>120)room.log.shift();}
+function validStats(stats){return skills.every(s=>Number.isInteger(stats[s])&&stats[s]>=0&&stats[s]<=5)&&skills.reduce((a,s)=>a+stats[s],0)===20;}
+function skillBonus(p,skill,cfg=null,isTeam=false){let n=Number(p.stats[skill]||0);if((p.cls==='Ranger'&&(skill==='Awareness'||skill==='Survival'))||(p.cls==='Mage'&&(skill==='Knowledge'||skill==='Spirit'||skill==='Arcana'))||(p.cls==='Engineer'&&skill==='Craft'))n++;if(backgroundEdges[p.background]===skill)n++;const t=p.talent;if(t){if((t==='Champion'||t==='Deadeye'||t==='Elementalist'||t==='Warden')&&cfg?.dangerous){const ok={Champion:['Strength','Endurance'],Deadeye:['Agility','Awareness'],Elementalist:['Knowledge','Spirit'],Warden:['Spirit','Endurance']}[t]||[];if(ok.includes(skill))n++;}if(t==='Pathfinder'&&['Survival','Awareness'].includes(skill))n++;if(t==='Shadow'&&skill==='Stealth')n++;if(t==='Saboteur'&&skill==='Craft')n++;if(t==='Seer'&&['Awareness','Spirit'].includes(skill))n++;if(t==='Inventor'&&skill==='Craft')n++;if(t==='Architect'&&isTeam&&['Craft','Knowledge'].includes(skill))n++;}
+  const gu=p.gearUpgrades||{},d=String(cfg?.desc||'').toLowerCase(),gearFunctional=Number(gu.condition??3)>0;
+  const combat=!!cfg?.dangerous&&/(fight|hold|drive|strike|combat|guard|defend|assault|attack|rush|archer|soldier|troll|wolf)/.test(d);
+  if(gearFunctional&&combat&&Number(gu.attack||0)>0&&['Strength','Agility','Awareness','Craft','Spirit'].includes(skill))n+=Number(gu.attack||0);
+  if(gearFunctional&&cfg?.dangerous&&Number(gu.defense||0)>0&&['Endurance','Agility','Spirit','Strength'].includes(skill)&&/(hold|survive|cross|brace|protect|defend|climb|fire|collapse|wave)/.test(d))n+=Number(gu.defense||0);
+  if(gearFunctional&&combat&&Number(gu.serviceUses||0)>0)n+=1;
+  if(gearFunctional&&gu.aranorianBinding&&/(heart|beacon|order|aranor|guardian|construct|mechanism)/.test(d))n+=1;
+  const earnedRole=repKeyFor(skill,d);if(Number(p.reputation?.[earnedRole]||0)>=3)n+=1;
+  if(p.empowered&&((p.cls==='Mage'&&['Knowledge','Spirit','Awareness','Arcana'].includes(skill))||(p.cls==='Monk'&&['Spirit','Endurance','Influence'].includes(skill))))n+=1;
+  if(p.milestone>=3){const core={Knight:['Strength','Endurance'],Ranger:['Survival','Awareness'],Thief:['Stealth','Agility'],Mage:['Knowledge','Spirit','Arcana'],Monk:['Spirit','Endurance'],Engineer:['Craft','Knowledge']}[p.cls]||[];if(core.includes(skill)&&cfg?.dangerous)n+=1;}
+  return n;}
+
+function challengeSkills(cfg){
+  if(Array.isArray(cfg.allowedSkills)&&cfg.allowedSkills.length)return cfg.allowedSkills.filter(s=>skills.includes(s)).slice(0,2);
+  const d=String(cfg.desc||'').toLowerCase(),r=cfg.recommended;
+  if(/rune|inscription|decipher|study|understand|archive|history|heart|beacon shard|ancient/.test(d))return ['Knowledge','Spirit'];
+  if(/track|trail|navigate|scout|bearings|route|path|find high ground/.test(d))return ['Survival','Awareness'];
+  if(/sneak|unseen|infiltrat|quarters|shadow|escape.*guard/.test(d))return ['Stealth','Agility'];
+  if(/convince|calm|rally|parley|negotiate|trust|speak|persuad/.test(d))return ['Influence','Spirit'];
+  if(/repair|mechanism|machine|gate|bridge|rigging|construct|stabilis|bypass|lock/.test(d))return ['Craft','Knowledge'];
+  if(/climb|cross|leap|chase|reach|rooftop/.test(d))return ['Agility','Endurance'];
+  if(/hold|lift|force|drive|break|brace|fight|stand your ground/.test(d))return ['Strength','Endurance'];
+  if(/resist|vision|fear|wounded|injured|heal|keep.*standing/.test(d))return ['Spirit','Endurance'];
+  if(/identify|inspect|search|notice|spot|watch/.test(d))return ['Awareness','Knowledge'];
+  const pair={Strength:'Endurance',Agility:'Awareness',Endurance:'Strength',Awareness:'Survival',Survival:'Awareness',Stealth:'Agility',Knowledge:'Spirit',Craft:'Knowledge',Influence:'Spirit',Spirit:'Influence'};
+  return [r||'Awareness',pair[r]||'Knowledge'].filter((s,i,a)=>skills.includes(s)&&a.indexOf(s)===i).slice(0,2);
+}
+function supportSkillsFor(cfg){
+  if(Array.isArray(cfg.supportSkills)&&cfg.supportSkills.length)return cfg.supportSkills.filter(s=>skills.includes(s)).slice(0,2);
+  const main=challengeSkills(cfg), d=String(cfg.desc||'').toLowerCase();
+  if(/mechanism|repair|bridge|rigging|gate/.test(d))return [...new Set(['Craft','Strength',...main])].slice(0,2);
+  if(/convince|calm|rally|parley/.test(d))return [...new Set(['Influence','Knowledge',...main])].slice(0,2);
+  if(/track|navigate|scout|route/.test(d))return [...new Set(['Awareness','Survival',...main])].slice(0,2);
+  return main;
+}
+function threatRules(room){
+  const t=Number(room.threat||0);
+  return {supportTarget:t>=3?7:6,dangerPenalty:t>=5?1:0,label:t>=5?'Hunted':t>=3?'Pressured':'Clear'};
+}
+function teamProfile(cfg,room,group=null){
+  const available=group?.playerIds?.length||room.players.length;
+  const count=Math.max(1,Math.min(Number(cfg.teamSize||3),available));
+  if(count===1)return {count,full:1,partial:null};
+  if(count===2)return {count,full:2,partial:1};
+  return {count,full:count,partial:count-1};
+}
+function applyTeamPartialCost(room,detail){
+  if(room.supplies>0){room.supplies--;detail.partialEffect='Supplies -1';}
+  else{room.threat=Math.min(6,room.threat+1);detail.partialEffect='Threat +1';}
+}
+function applyRollMoment(room,detail){
+  const chosen=[];
+  if(detail.type==='team')for(const r of detail.results||[])chosen.push(r.die);
+  else if(detail.type!=='intervention'&&detail.type!=='item'){
+    const dice=detail.dice||[];
+    if(detail.rollMode==='advantage')chosen.push(Math.max(...dice));
+    else if(detail.rollMode==='disadvantage')chosen.push(Math.min(...dice));
+    else if(dice.length)chosen.push(dice[0]);
+  }
+  const heroic=chosen.includes(6), complication=chosen.includes(1);
+  detail.heroicMoment=heroic;detail.complication=complication;
+  if(heroic){
+    if(room.threat>0){room.threat--;detail.heroicEffect='Threat -1';}
+    else{room.hope=Math.min(6,room.hope+1);detail.heroicEffect='Hope +1';}
+  }
+  if(complication){room.threat=Math.min(6,room.threat+1);detail.complicationEffect='Threat +1';}
+}
+function outcomePayload(room,cfg,result,nextScene,detail={}){
+  const label=result==='success'?'SUCCESS':result==='partial'?'PARTIAL SUCCESS':result==='instant'?'DECISION MADE':'SETBACK';
+  const active=room.players[room.activeIndex];
+  return {label,desc:cfg.desc||'The company acts.',fromScene:room.scene,nextScene,nextSceneChanged:!!nextScene,hero:active?.name||'',heroicMoment:!!detail.heroicMoment,heroicEffect:detail.heroicEffect||null,complication:!!detail.complication,complicationEffect:detail.complicationEffect||null,partialEffect:detail.partialEffect||null,successes:detail.successes,teamSize:detail.results?.length||null,dangerous:!!cfg.dangerous};
+}
+function emitOutcome(room,payload){io.to(room.code).emit('outcome',payload);}
+function makeReturnPin(room){let pin;do{pin=String(1000+crypto.randomInt(9000));}while(room?.players?.some(p=>p.returnPin===pin));return pin;}
+function awardGrowth(room,p,amount=1,reason='challenge'){if(!p)return; p.growth=(p.growth||0)+amount; let gained=0; while(p.growth>=5){p.growth-=5;p.skillPoints=(p.skillPoints||0)+1;gained++;} if(gained){io.to(p.socketId||'').emit('skillPointEarned',{amount:gained,reason});addLog(room,`${p.name} earned ${gained} Skill Point${gained>1?'s':''}.`);}}
+function groupForPlayer(room,playerOrId){const id=typeof playerOrId==='string'?playerOrId:playerOrId?.id;return (room.groups||[]).find(g=>(g.playerIds||[]).includes(id))||null;}
+function activePlayer(room){return room.players[room.activeIndex]||null;}
+function activeGroup(room){return groupForPlayer(room,activePlayer(room))||(room.groups||[])[0]||null;}
+function primaryScene(room){return activeGroup(room)?.scene||(room.groups||[])[0]?.scene||room.scene||'intro';}
+function groupPlayers(room,group){return (group?.playerIds||[]).map(id=>getPlayer(room,id)).filter(Boolean);}
+function ensureMapVisited(room,scene){room.mapVisited=Array.isArray(room.mapVisited)?room.mapVisited:[];if(scene&&!room.mapVisited.includes(scene))room.mapVisited.push(scene);}
+function initMainGroup(room,scene='intro'){
+  const ids=room.players.map(p=>p.id);room.groups=[{id:'main',name:'Company',playerIds:ids,scene,pending:null,lastRoll:null,trail:[scene],splitSet:null,waitingMerge:null}];
+  for(const p of room.players)p.groupId='main';room.routeHistory=Array.isArray(room.routeHistory)?room.routeHistory:[];room.mapVisited=Array.isArray(room.mapVisited)?room.mapVisited:[];ensureMapVisited(room,scene);room.scene=scene;room.pending=null;room.lastRoll=null;
+}
+function publicState(room,viewerId=null){
+  const g=viewerId?groupForPlayer(room,viewerId):activeGroup(room);const scene=g?.scene||primaryScene(room);
+  return {...room,scene,pending:g?.pending||null,lastRoll:g?.lastRoll||null,currentGroupId:g?.id||null,currentGroupName:g?.name||'Company',currentGroupPlayerIds:[...(g?.playerIds||[])],groups:(room.groups||[]).map(x=>({id:x.id,name:x.name,playerIds:[...(x.playerIds||[])],scene:x.scene,trail:[...(x.trail||[])],waitingMerge:!!x.waitingMerge,splitSet:x.splitSet||null})),routeHistory:(room.routeHistory||[]).map(x=>({...x,trail:[...(x.trail||[])],playerIds:[...(x.playerIds||[])]})),players:room.players.map(({resumeToken,returnPin,socketId,...p})=>p),itemCatalog,talentCatalog:talents};
+}
+function migrateRoom(room){
+  const legacySession=Number(room.session||0);
+  if(room.scene==='birthday')room.scene='storm';
+  if(room.phase==='break'||String(room.scene||'').startsWith('session_')){const starts={1:'green_gate',2:'goblin_border',3:'ash_coast',4:'mountain_gate',5:'final_road'};room.scene=starts[legacySession]||room.scene;room.phase='playing';}
+  room.items=Array.isArray(room.items)?room.items:[];room.itemUses=room.itemUses||{};room.coin=Number(room.coin??10);room.finalChoice=room.finalChoice||null;room.allies=room.allies||{};room.flags=room.flags||{};room.journal=room.journal||{people:{},clues:[],decisions:[],conclusions:[]};room.journal.people=room.journal.people||{};room.journal.clues=Array.isArray(room.journal.clues)?room.journal.clues:[];room.journal.decisions=Array.isArray(room.journal.decisions)?room.journal.decisions:[];room.journal.conclusions=Array.isArray(room.journal.conclusions)?room.journal.conclusions:[];room.chapter=Number(room.chapter||(legacySession?Math.min(6,legacySession+1):1));room.routeHistory=Array.isArray(room.routeHistory)?room.routeHistory:[];room.mapVisited=Array.isArray(room.mapVisited)?room.mapVisited:[];
+  room.players=(room.players||[]).map(p=>({...p,background:backgrounds.includes(p.background)?p.background:'Outlander',portrait:[1,2,3,4].includes(Number(p.portrait))?Number(p.portrait):1,talent:p.talent||null,gear:p.gear||classGear[p.cls]||null,gearUpgrades:{attack:0,defense:0,serviceUses:0,condition:3,maxCondition:3,aranorianBinding:false,labels:[],...(p.gearUpgrades||{})},reputation:{protector:0,pathfinder:0,scholar:0,negotiator:0,maker:0,bold:0,...(p.reputation||{})},sacrificed:!!p.sacrificed,cluesSeen:p.cluesSeen||{},supportReady:p.supportReady!==false,interventionReady:p.interventionReady!==false,milestone:Number(p.milestone||0),pathUpgrades:p.pathUpgrades||[],maxEnergy:Number(p.maxEnergy||0),energy:Number(p.energy||0),empowered:false,growth:Number(p.growth||0),skillPoints:Number(p.skillPoints||0),stats:{...emptyStats(),...(p.stats||{})},voiceJoined:false,voiceMuted:false,voiceSpeaking:false}));
+  if(room.phase==='playing'||room.phase==='ended'){
+    if(!Array.isArray(room.groups)||!room.groups.length) initMainGroup(room,room.scene||'intro');
+    else {room.groups=room.groups.map(g=>({...g,playerIds:Array.isArray(g.playerIds)?g.playerIds:[],scene:g.scene||room.scene||'intro',pending:null,lastRoll:g.lastRoll||null,trail:Array.isArray(g.trail)&&g.trail.length?g.trail:[g.scene||room.scene||'intro'],waitingMerge:g.waitingMerge||null,splitSet:g.splitSet||null}));for(const p of room.players){const g=room.groups.find(x=>x.playerIds.includes(p.id));p.groupId=g?.id||room.groups[0]?.id||'main';}for(const g of room.groups)for(const s of g.trail)ensureMapVisited(room,s);}
+  }
+  delete room.birthdayBlessing;delete room.birthdayBlessingAvailable;delete room.birthdayChestOpened;delete room.session;delete room.sessionEnd;
+  return room;
+}
+function serializeRoom(room){return {v:8,code:room.code,hostId:room.hostId,phase:room.phase,scene:primaryScene(room),chapter:room.chapter,activeIndex:room.activeIndex,round:room.round,hope:room.hope,threat:room.threat,supplies:room.supplies,relics:room.relics,coin:room.coin,flags:room.flags,items:room.items,itemUses:room.itemUses,allies:room.allies,ending:room.ending,completedAt:room.completedAt,finalChoice:room.finalChoice,log:room.log,journal:room.journal||{people:{},clues:[],decisions:[],conclusions:[]},mapVisited:room.mapVisited||[],routeHistory:room.routeHistory||[],groups:(room.groups||[]).map(g=>({...g,pending:null})),players:room.players.map(({socketId,connected,voiceJoined,voiceMuted,voiceSpeaking,...p})=>({...p,connected:false}))};}
+function encodeSave(room){return zlib.deflateRawSync(Buffer.from(JSON.stringify(serializeRoom(room)))).toString('base64url');}
+function decodeSave(token){try{const data=JSON.parse(zlib.inflateRawSync(Buffer.from(String(token||''),'base64url')).toString('utf8'));if(!data||![2,3,4,5,6,7,8].includes(data.v)||!Array.isArray(data.players)||!data.players.length)return null;return migrateRoom(data);}catch{return null;}}
+function emitCampaignSave(room){const host=getPlayer(room,room.hostId);if(host?.socketId)io.to(host.socketId).emit('campaignSave',{saveToken:encodeSave(room),scene:primaryScene(room),round:room.round,chapter:room.chapter,updatedAt:Date.now()});}
+function emitRoom(room){for(const p of room.players)if(p.socketId)io.to(p.socketId).emit('state',publicState(room,p.id));emitCampaignSave(room);}
+function emitContextClues(room,scene,playerIds=null){const clues=contextualClues[scene];if(!clues)return;const allowed=playerIds?new Set(playerIds):null;for(const p of room.players){if(allowed&&!allowed.has(p.id))continue;const txt=clues[p.cls];if(!txt||p.cluesSeen?.[scene]||!p.socketId)continue;p.cluesSeen=p.cluesSeen||{};p.cluesSeen[scene]=true;io.to(p.socketId).emit('secret',{title:`Only your ${p.cls} notices…`,text:txt});}}
+function emitToGroup(room,group,event,payload){for(const p of groupPlayers(room,group))if(p.socketId)io.to(p.socketId).emit(event,payload);}
+function emitOutcome(room,payload,group=activeGroup(room)){if(group)emitToGroup(room,group,'outcome',payload);else io.to(room.code).emit('outcome',payload);}
+function setbackConsequenceText(cfg,detail={}){
+  const fx=cfg.failEffects||{};
+  const threatDelta=1+Number(fx.threat||0);
+  const bits=[`Threat +${threatDelta}`];
+  if(Number(fx.supplies||0)<0)bits.push(`Supplies ${fx.supplies}`);
+  if(Number(fx.hope||0)<0)bits.push(`Hope ${fx.hope}`);
+  if(Number(fx.relics||0)<0)bits.push(`Relics ${fx.relics}`);
+  if(cfg.dangerous){
+    const wounded=detail?.results?detail.results.filter(x=>!x.ok).length:(!detail.success?1:0);
+    if(wounded)bits.push(wounded===1?'a hero is wounded':`${wounded} heroes are wounded`);
+  }
+  return bits.join(' · ');
+}
+function ensureJournal(room){room.journal=room.journal||{people:{},clues:[],decisions:[],conclusions:[]};room.journal.people=room.journal.people||{};room.journal.clues=Array.isArray(room.journal.clues)?room.journal.clues:[];room.journal.decisions=Array.isArray(room.journal.decisions)?room.journal.decisions:[];room.journal.conclusions=Array.isArray(room.journal.conclusions)?room.journal.conclusions:[];return room.journal;}
+function journalPush(list,entry){if(!entry||!entry.id)return;if(!list.some(x=>x.id===entry.id))list.push(entry);}
+function resolvedDialogue(cfg,result,active){const success=result!=='setback'&&result!=='miss';const d=success?cfg.dialogueSuccess:cfg.dialogueFailure;if(!d)return null;let extra='';if(active?.cls&&d.classLines?.[active.cls])extra=d.classLines[active.cls];else if(active?.background&&d.backgroundLines?.[active.background])extra=d.backgroundLines[active.background];return {...d,extra};}
+function applyNarrativeMeta(room,cfg,success,active){ensureJournal(room);const d=success?cfg.dialogueSuccess:cfg.dialogueFailure;if(!d)return;const j=room.journal;if(d.person){j.people[d.person.id]={...(j.people[d.person.id]||{}),...d.person};}if(d.relationship){j.people[d.relationship.id]={...(j.people[d.relationship.id]||{}),id:d.relationship.id,name:d.relationship.name||d.relationship.id,status:d.relationship.status,note:d.relationship.note||''};room.flags['rel_'+d.relationship.id+'_'+String(d.relationship.status||'').replace(/\W+/g,'_').toLowerCase()]=true;}if(d.clue){journalPush(j.clues,d.clue);room.flags['clue_'+d.clue.id]=true;}if(d.decision)journalPush(j.decisions,d.decision);checkConclusions(room);}
+function checkConclusions(room){const j=ensureJournal(room),has=id=>room.flags['clue_'+id];if(has('captain_oddities')&&has('survivor_thorne')&&!room.flags.thorne_suspect){room.flags.thorne_suspect=true;journalPush(j.conclusions,{id:'thorne_suspect',title:'Thorne knew more before the storm',text:'Veyra’s account of the compass disturbances and the survivor’s memory of Thorne carrying an Aranorian device make coincidence increasingly unlikely.'});}if(has('old_war_truth')&&has('storm_device')&&has('heart_network')&&!room.flags.aranor_pattern){room.flags.aranor_pattern=true;journalPush(j.conclusions,{id:'aranor_pattern',title:'The beacons are a control network',text:'The old war, Thorne’s device and the Heart all point to the same truth: Aranor’s beacons do not simply hide the island — they regulate the Heart and the routes around it.'});}
+  if(room.flags.aranor_pattern&&room.flags.heart_understood&&(room.flags['clue_keeper_rotation']||room.flags.mirror_warning||room.flags.old_watch_marks||hasItem(room,'keeper_crystal'))&&!room.flags.beacon_handoff_solution){room.flags.beacon_handoff_solution=true;journalPush(j.conclusions,{id:'beacon_handoff_solution',title:'The Last Beacon can transfer its burden',text:'The network was designed around rotating keepers and grounding stations. Someone may need to hold the Heart during the final change — but the role does not have to become a permanent tomb if the company has enough of the original procedure.'});}}
+function narrativeDifficulty(room,cfg,base){let n=Number(base||0),note=null;if(cfg.knowledgeFlag&&room.flags[cfg.knowledgeFlag]){n=Math.max(5,n-1);note=cfg.knowledgeNote||'Earlier information gives the company an advantage here.';}if(cfg.knowledgeItem&&hasItem(room,cfg.knowledgeItem)){n=Math.max(5,n-1);note=cfg.knowledgeItemNote||'Something the company carried here makes this easier.';}return {value:n,note};}
+function outcomePayload(room,cfg,result,nextScene,detail={},group=activeGroup(room)){
+  const label=result==='success'?'SUCCESS':result==='partial'?'PARTIAL SUCCESS':result==='instant'?'DECISION MADE':result==='sense'?'DISCOVERY':result==='miss'?'NOTHING FOUND':'SETBACK';const active=activePlayer(room);
+  return {label,desc:cfg.outcomeText||cfg.desc||'The company acts.',fromScene:group?.scene||primaryScene(room),nextScene,nextSceneChanged:!!nextScene,hero:active?.name||'',heroicMoment:!!detail.heroicMoment,heroicEffect:detail.heroicEffect||null,complication:!!detail.complication,complicationEffect:detail.complicationEffect||null,partialEffect:detail.partialEffect||null,successes:detail.successes,teamSize:detail.results?.length||null,dangerous:!!cfg.dangerous,lowStakes:!!cfg.lowStakes,failureText:result==='setback'?(cfg.failureText||null):null,consequenceText:result==='setback'?setbackConsequenceText(cfg,detail):null,dialogue:resolvedDialogue(cfg,result,active)};
+}
+function nextTurn(room){if(!room.players.length)return;const old=room.activeIndex;let idx=old;let crossed=false;for(let i=1;i<=room.players.length;i++){const n=(old+i)%room.players.length;if(n===0)crossed=true;const g=groupForPlayer(room,room.players[n]);if(g&&!g.waitingMerge){idx=n;break;}}room.activeIndex=idx;if(crossed){room.round++;room.players.forEach(p=>p.supportReady=true);addLog(room,`Round ${room.round} begins. Support actions refresh.`);}}
+
+const reputationTitles={
+  protector:['Shield of the Company','The one who repeatedly steps between danger and everyone else.'],
+  pathfinder:['Wayfinder','The company trusts this hero to read terrain, routes and changing conditions.'],
+  scholar:['Keeper of Questions','Old systems, clues and uncomfortable truths tend to make sense in this hero’s hands.'],
+  negotiator:['Trusted Voice','People remember how this hero speaks when the company needs an answer.'],
+  maker:['Fieldwright','Broken gear, mechanisms and impossible practical problems have become this hero’s territory.'],
+  bold:['First Forward','When nobody knows what waits beyond the next threshold, this hero is often first across.']
+};
+function repKeyFor(skill,desc=''){
+  const d=String(desc).toLowerCase();
+  if(/ask|speak|convince|calm|persuade|negotiate|rally|promise|press|parley/.test(d)||skill==='Influence')return 'negotiator';
+  if(/study|record|archive|read|rune|pattern|understand|translate|decipher|heart|beacon/.test(d)||skill==='Knowledge'||skill==='Spirit')return 'scholar';
+  if(/repair|rig|mechanism|forge|build|craft|anchor|gate/.test(d)||skill==='Craft')return 'maker';
+  if(/protect|hold|defend|brace|rescue|guard|line|save/.test(d)||skill==='Endurance'||skill==='Strength')return 'protector';
+  if(/track|route|scout|path|cross|weather|travel|trail|navigate/.test(d)||skill==='Survival'||skill==='Awareness')return 'pathfinder';
+  return 'bold';
+}
+function awardReputation(room,p,key,amount=1){
+  if(!p||!key)return;p.reputation={protector:0,pathfinder:0,scholar:0,negotiator:0,maker:0,bold:0,...(p.reputation||{})};
+  const before=Number(p.reputation[key]||0);p.reputation[key]=Math.min(9,before+amount);
+  if(before<2&&p.reputation[key]>=2){const [title,desc]=reputationTitles[key]||[key,''];if(p.socketId)io.to(p.socketId).emit('reputationEarned',{key,title,desc});addLog(room,`${p.name} has become known as ${title}.`);}
+}
+function maybeWearGear(room,participants,cfg,success){
+  if(success||!cfg?.dangerous)return;const d=String(cfg.desc||'').toLowerCase();if(!/(fight|hold|drive|strike|combat|guard|defend|assault|attack|rush|cross|climb|wave|fire|collapse|troll|wolf|archer)/.test(d))return;
+  for(const p of participants||[]){p.gearUpgrades={attack:0,defense:0,serviceUses:0,condition:3,maxCondition:3,aranorianBinding:false,labels:[],...(p.gearUpgrades||{})};const before=Number(p.gearUpgrades.condition??3);if(before<=0)continue;p.gearUpgrades.condition=Math.max(0,before-1);const label=p.gearUpgrades.condition===0?'Gear damaged: bonuses offline until repaired':`Gear condition ${p.gearUpgrades.condition}/${p.gearUpgrades.maxCondition||3}`;p.gearUpgrades.labels=(p.gearUpgrades.labels||[]).filter(x=>!/^Gear condition|^Gear damaged/.test(x));p.gearUpgrades.labels.push(label);if(p.socketId)io.to(p.socketId).emit('gearDamaged',{condition:p.gearUpgrades.condition,max:p.gearUpgrades.maxCondition||3,gear:p.gear});}
+}
+function newPlayer(socket,name,cls,room=null,background='Outlander',portrait=1){return {id:crypto.randomUUID(),socketId:socket.id,resumeToken:crypto.randomBytes(16).toString('hex'),returnPin:makeReturnPin(room),name,cls,background:backgrounds.includes(background)?background:'Outlander',portrait:[1,2,3,4].includes(Number(portrait))?Number(portrait):1,talent:null,stats:emptyStats(),gear:classGear[cls],gearUpgrades:{attack:0,defense:0,serviceUses:0,condition:3,maxCondition:3,aranorianBinding:false,labels:[]},reputation:{protector:0,pathfinder:0,scholar:0,negotiator:0,maker:0,bold:0},sacrificed:false,wounds:0,milestone:0,pathUpgrades:[],maxEnergy:0,energy:0,empowered:false,growth:0,skillPoints:0,supportReady:true,interventionReady:true,ready:false,connected:true,cluesSeen:{},groupId:'main',voiceJoined:false,voiceMuted:false,voiceSpeaking:false};}
+function newRoom(hostId){return migrateRoom({code:roomCode(),hostId,phase:'lobby',players:[],scene:'intro',chapter:1,activeIndex:0,round:1,hope:6,threat:0,supplies:6,relics:0,coin:10,flags:{},items:[],itemUses:{},allies:{},pending:null,lastRoll:null,ending:null,finalChoice:null,log:[],journal:{people:{},clues:[],decisions:[],conclusions:[]},groups:[],routeHistory:[],mapVisited:[]});}
+function attachSocket(room,p,socket){if(p.socketId&&p.socketId!==socket.id){const old=io.sockets.sockets.get(p.socketId);if(old)old.disconnect(true);}p.socketId=socket.id;p.connected=true;p.voiceJoined=false;p.voiceMuted=false;p.voiceSpeaking=false;socket.data.roomCode=room.code;socket.data.playerId=p.id;socket.join(room.code);}
+function sendJoined(socket,room,p,event='joined'){socket.emit(event,{roomCode:room.code,playerId:p.id,resumeToken:p.resumeToken,returnPin:p.returnPin,isHost:room.hostId===p.id});}
+function hostOnly(room,socket){return room&&room.hostId===socket.data.playerId;}
+function removeDisconnected(room,playerId){const idx=room.players.findIndex(p=>p.id===playerId);if(idx<0)return false;const p=room.players[idx];if(p.connected||p.id===room.hostId)return false;room.players.splice(idx,1);for(const g of room.groups||[])g.playerIds=g.playerIds.filter(id=>id!==playerId);room.groups=(room.groups||[]).filter(g=>g.playerIds.length);if(room.activeIndex>=room.players.length)room.activeIndex=0;return true;}
+function hasItem(room,id){return room.items.includes(id);}
+function addItem(room,id){if(!itemCatalog[id])return false;if(id!=='map_fragment'&&hasItem(room,id))return false;if(id==='map_fragment'&&room.items.filter(x=>x===id).length>=3)return false;room.items.push(id);io.to(room.code).emit('itemFound',{id,...itemCatalog[id]});addLog(room,`Item discovered: ${itemCatalog[id].name}.`);return true;}
+function consumeItem(room,id){const i=room.items.indexOf(id);if(i<0)return false;room.items.splice(i,1);addLog(room,`${itemCatalog[id]?.name||id} was used.`);return true;}
+function effect(room,cfg,success=true){const fx=success?(cfg.effects||{}):(cfg.failEffects||{});if(fx.flag)room.flags[fx.flag]=true;if(fx.flags)for(const k of fx.flags)room.flags[k]=true;if(fx.ally){room.allies[fx.ally]=true;if(room.allies.serayne&&room.allies.goblin_clan)room.flags.stewardship_unlocked=true;}if(fx.finalChoice)room.finalChoice=fx.finalChoice;if(fx.refreshInterventions)room.players.forEach(p=>p.interventionReady=true);if(fx.chapter)room.chapter=fx.chapter;if(fx.supplies)room.supplies=Math.max(0,room.supplies+fx.supplies);if(fx.hope)room.hope=Math.max(0,Math.min(6,room.hope+fx.hope));if(fx.threat)room.threat=Math.max(0,Math.min(6,room.threat+fx.threat));if(fx.relics)room.relics=Math.max(0,room.relics+fx.relics);if(fx.coin)room.coin=Math.max(0,Number(room.coin||0)+Number(fx.coin));
+  if(fx.gearUpgrade){const p=activePlayer(room);if(p){p.gearUpgrades={attack:0,defense:0,serviceUses:0,condition:3,maxCondition:3,aranorianBinding:false,labels:[],...(p.gearUpgrades||{})};if(fx.gearUpgrade==='service'){p.gearUpgrades.serviceUses=Math.max(p.gearUpgrades.serviceUses||0,3);p.gearUpgrades.labels.push('Freshly serviced: +1 on next 3 combat checks');}if(fx.gearUpgrade==='attack'){p.gearUpgrades.attack=Math.max(1,p.gearUpgrades.attack||0);p.gearUpgrades.labels.push(({Mage:'Arcane focus: +1 relevant dangerous checks',Monk:'Blessed relic: +1 relevant dangerous checks',Engineer:'Calibrated implement: +1 dangerous checks',Thief:'Honed tools: +1 dangerous checks',Ranger:'Balanced bow: +1 dangerous checks',Knight:'Reforged edge: +1 dangerous attacks'}[p.cls]));}if(fx.gearUpgrade==='defense'){p.gearUpgrades.defense=Math.max(1,p.gearUpgrades.defense||0);p.gearUpgrades.labels.push('Reinforced fittings: +1 relevant dangerous defence');}if(fx.gearUpgrade==='repair'){p.gearUpgrades.condition=p.gearUpgrades.maxCondition||3;p.gearUpgrades.labels=(p.gearUpgrades.labels||[]).filter(x=>!/^Gear condition|^Gear damaged/.test(x));p.gearUpgrades.labels.push('Repaired to full condition');}if(fx.gearUpgrade==='aranorian'){p.gearUpgrades.aranorianBinding=true;p.gearUpgrades.condition=p.gearUpgrades.maxCondition||3;p.gearUpgrades.labels.push('Aranorian binding: +1 around beacon mechanisms and ancient guardians');}}}
+  if(fx.sacrificeActive){const p=activePlayer(room);if(p){p.sacrificed=true;p.sacrificeReason=fx.sacrificeReason||'last_beacon';room.flags.sacrificedHeroId=p.id;room.flags.sacrificedHeroName=p.name;}}
+  if(fx.item)addItem(room,fx.item);if(fx.items)fx.items.forEach(id=>addItem(room,id));if(fx.consume)consumeItem(room,fx.consume);if(fx.finalCrisis){const chosen=fx.finalCrisis;if(chosen!=='gate'&&!room.allies.crew&&!room.allies.final_reinforcements){room.threat=Math.min(6,room.threat+1);room.flags.gate_fell=true;}if(chosen!=='people'&&!room.allies.serayne&&!room.allies.goblin_clan){room.hope=Math.max(0,room.hope-1);room.flags.people_lost=true;}if(chosen!=='heart'&&!room.flags.heart_understood&&!room.allies.thorne){room.threat=Math.min(6,room.threat+1);room.flags.heart_scar=true;}}checkConclusions(room);}
+const expeditionStages=[{at:'camp_council',title:'Survivors',bonus:'First refinement'},{at:'six_mural',title:'Specialists',bonus:'Advanced training'},{at:'final_road',title:'Heroes of Aranor',bonus:'Signature mastery'}];
+const classPaths={Knight:['Reinforced shield','Guardian’s oath','Last Stand'],Ranger:['Balanced bow','Pathfinder’s compass','Eagle Eye'],Thief:['Precision picks','Shadow cloak','Ghost Step'],Mage:['Arcane focus','Ancient grimoire','Archmage’s insight'],Monk:['Blessed pendant','Restorative discipline','Beacon of Hope'],Engineer:['Calibrated tools','Adaptive toolkit','Masterwork invention']};
+function grantExpeditionMilestones(room){
+  const visited=new Set(room.mapVisited||[]); const earned=expeditionStages.filter(stage=>visited.has(stage.at)).length;
+  for(const p of room.players){p.milestone=Number(p.milestone||0);p.pathUpgrades=Array.isArray(p.pathUpgrades)?p.pathUpgrades:[];
+    while(p.milestone<expeditionStages.length&&earned>p.milestone){
+      const stage=p.milestone+1; p.milestone=stage; p.skillPoints=(p.skillPoints||0)+1;
+      const gear=(classPaths[p.cls]||[])[stage-1];p.pathUpgrades.push(gear);
+      p.gearUpgrades=p.gearUpgrades||{};p.gearUpgrades.condition=p.gearUpgrades.maxCondition||3;
+      if(stage===1)p.gearUpgrades.attack=Math.max(1,p.gearUpgrades.attack||0);
+      if(stage===2)p.gearUpgrades.defense=Math.max(1,p.gearUpgrades.defense||0);
+      if(stage===3)p.signatureReady=true;
+      if(p.cls==='Mage'||p.cls==='Monk'){p.maxEnergy=stage===1?3:stage===2?4:5;p.energy=p.maxEnergy;}
+      addLog(room,`${p.name} reached ${expeditionStages[stage-1].title}: ${gear}; +1 Skill Point.`);
+      if(p.socketId)io.to(p.socketId).emit('expeditionMilestone',{stage,title:expeditionStages[stage-1].title,gear});
+    }
+  }
+}
+function recordScene(room,group,scene){if(!group||!scene)return;group.trail=Array.isArray(group.trail)?group.trail:[];if(group.trail[group.trail.length-1]!==scene)group.trail.push(scene);ensureMapVisited(room,scene);grantExpeditionMilestones(room);for(const p of room.players){if((p.cls==='Mage'||p.cls==='Monk')&&p.maxEnergy&&room.mapVisited.length%5===0&&p.lastEnergyRefresh!==room.mapVisited.length){p.energy=Math.min(p.maxEnergy,p.energy+2);p.lastEnergyRefresh=room.mapVisited.length;}}}
+function tryMerge(room,splitSet){const gs=(room.groups||[]).filter(g=>g.splitSet===splitSet);if(gs.length<2||!gs.every(g=>g.waitingMerge))return false;const target=gs[0].waitingMerge.target,key=gs[0].waitingMerge.key;if(!gs.every(g=>g.waitingMerge.key===key))return false;const ids=[...new Set(gs.flatMap(g=>g.playerIds))];room.routeHistory=room.routeHistory||[];for(const g of gs)room.routeHistory.push({id:g.id,name:g.name,playerIds:[...g.playerIds],trail:[...g.trail],complete:true});const merged={id:'group_'+crypto.randomBytes(3).toString('hex'),name:'Company',playerIds:ids,scene:target,pending:null,lastRoll:null,trail:[target],splitSet:null,waitingMerge:null};room.groups=room.groups.filter(g=>g.splitSet!==splitSet);room.groups.push(merged);for(const id of ids){const p=getPlayer(room,id);if(p)p.groupId=merged.id;}recordScene(room,merged,target);emitContextClues(room,target,ids);addLog(room,`The separated groups reunited at ${target.replaceAll('_',' ')}.`);return true;}
+function transition(room,target,group=activeGroup(room)){if(!group)return;if(!target){group.pending=null;return;}group.pending=null;if(String(target).startsWith('@final')){room.phase='ended';room.ending='campaign';room.completedAt=Date.now();room.scene='campaign_end';for(const g of room.groups||[])g.scene='campaign_end';return;}if(String(target).startsWith('@merge:')){const parts=String(target).split(':');const key=parts[1],dest=parts.slice(2).join(':');if(!group.splitSet){group.scene=dest;recordScene(room,group,dest);emitContextClues(room,dest,group.playerIds);return;}group.waitingMerge={key,target:dest};group.scene='waiting_reunion';recordScene(room,group,'waiting_reunion');tryMerge(room,group.splitSet);return;}group.scene=target;recordScene(room,group,target);emitContextClues(room,target,group.playerIds);}
+function requirementsMet(room,cfg){if(cfg.requiresCoin&&Number(room.coin||0)<Number(cfg.requiresCoin))return `The company needs ${cfg.requiresCoin} Coin for that.`;if(cfg.requiresItem&&!hasItem(room,cfg.requiresItem))return `You do not have ${itemCatalog[cfg.requiresItem]?.name||'the required item'}.`;if(cfg.requiresFlag&&!room.flags[cfg.requiresFlag])return 'That option is not available because of an earlier choice.';if(cfg.requiresNotFlag&&room.flags[cfg.requiresNotFlag])return 'You have already explored that option.';if(cfg.requiresItemCount){const count=room.items.filter(x=>x===cfg.requiresItemCount.id).length;if(count<cfg.requiresItemCount.count)return `You need ${cfg.requiresItemCount.count} map fragments.`;}if(cfg.requiresGearDamaged){const p=activePlayer(room);if(!p||Number(p.gearUpgrades?.condition??3)>=(p.gearUpgrades?.maxCondition||3))return 'Your equipment is already in full condition.';}if(cfg.requiresNoBinding){const p=activePlayer(room);if(p?.gearUpgrades?.aranorianBinding)return 'That hero already carries an Aranorian binding.';}return null;}
+function resolveFailure(room,cfg,group=activeGroup(room)){effect(room,cfg,false);applyNarrativeMeta(room,cfg,false,activePlayer(room));const target=cfg.failure||cfg.success;const detail=cfg.lastDetail||group?.lastRoll||{};emitOutcome(room,outcomePayload(room,cfg,'setback',target,detail,group),group);transition(room,target,group);if(group)group.pending=null;nextTurn(room);}
+const actionMap = {
+  intro:{light:{type:'support',desc:'identify the distant light',difficulty:6,recommended:'Awareness',success:'storm',failure:'storm',reason:'One hero leads the observation; one may help interpret what they see.',effects:{flag:'beacon'}},captain:{type:'support',desc:'convince Captain Veyra to prepare the ship',difficulty:6,recommended:'Influence',success:'storm',failure:'storm',reason:'One hero speaks for the party while another may provide practical evidence.',effects:{flag:'captain',supplies:1}},inspect:{type:'solo',desc:'inspect the Resolute for hidden danger',difficulty:7,recommended:'Craft',success:'storm',failure:'storm',reason:'A focused inspection rewards a specialist.',effects:{flag:'mast'}}},
+  storm:{mast:{type:'support',desc:'save the mainmast',difficulty:7,recommended:'Craft',success:'wave',failure:'wave',reason:'One hero tackles the rigging while one helper may brace it.',effects:{flag:'mast'},failEffects:{supplies:-1}},boats:{type:'support',desc:'secure the lifeboats',difficulty:7,recommended:'Agility',success:'wave',failure:'wave',reason:'One hero leads the work and one may assist.',effects:{flag:'boats'}},crew:{type:'solo',desc:'save injured sailors',difficulty:6,recommended:'Spirit',success:'wave',failure:'wave',reason:'The rescue must happen immediately.',effects:{ally:'crew',hope:1}}},
+  wave:{face:{type:'team',desc:'survive the great wave',memberDifficulty:6,need:2,teamSize:3,success:'wreck',failure:'undercliff_wreck',dangerous:true,reason:'Different heroes must control different parts of the ship at once.',teamRoles:[{name:'Hold the helm',skills:['Survival','Influence','Strength']},{name:'Save the rigging',skills:['Craft','Strength','Agility']},{name:'Protect the crew',skills:['Endurance','Spirit','Agility']}],failEffects:{supplies:-2,threat:1}}},
+  undercliff_wreck:{climb:{type:'team',desc:'escape the flooded wreck beneath the cliffs',memberDifficulty:6,need:2,teamSize:3,success:'wreck',failure:'sea_caves',dangerous:true,reason:'The group must free trapped companions before the tide returns.'},caves:{type:'instant',desc:'follow the air current into the sea caves',success:'sea_caves'}},
+  sea_caves:{light:{type:'support',desc:'navigate the glowing sea caves',difficulty:6,recommended:'Awareness',success:'wreck',failure:'wreck',reason:'One hero chooses the route while another watches the tide.',effects:{item:'map_fragment',relics:1}},rush:{type:'instant',desc:'follow the surf toward daylight',success:'wreck',failEffects:{supplies:-1}}},
+  wreck:{search:{type:'support',desc:'search the wreck for survivors and equipment',difficulty:6,recommended:'Awareness',success:'road',failure:'wreck_fire',reason:'One hero leads the search while another lifts debris or spots details.',effects:{supplies:2,item:'healing_draught'}},tracks:{type:'solo',desc:'follow the mysterious tracks',difficulty:7,recommended:'Survival',success:'road',failure:'lost_marsh',reason:'One tracker reads the signs best without the party trampling them.',effects:{flag:'ruin'}},cliffs:{type:'support',desc:'climb the sea cliffs and scout inland',difficulty:7,recommended:'Agility',success:'road',failure:'sea_caves',dangerous:true,reason:'One hero climbs while a teammate can secure the rope.',effects:{flag:'ruin'}}},
+  wreck_fire:{rescue:{type:'team',desc:'stop a lantern fire spreading through the wreckage',memberDifficulty:6,need:2,teamSize:3,success:'road',failure:'smoke_shore',dangerous:true,reason:'Water, trapped sailors and supplies all need attention at once.',effects:{ally:'survivors'},failEffects:{supplies:-2},failureText:'The fire is contained only after stores burn and the camp is dragged apart across the wet sand.'}},
+  lost_marsh:{high:{type:'support',desc:'find high ground before the marsh closes in',difficulty:6,recommended:'Survival',success:'road',failure:'marsh_lights',reason:'One hero navigates while a second keeps the company together.'},lights:{type:'instant',desc:'follow the strange blue lights',success:'marsh_lights'}},
+  marsh_lights:{resist:{type:'solo',desc:'resist the voices in the marsh',difficulty:7,recommended:'Spirit',success:'road',failure:'marsh_recovery',dangerous:true,reason:'Each mind must ultimately resist alone.',effects:{relics:1},failureText:'The voices pull the company away from the road before everyone manages to regroup.'}},
+  road:{direct:{type:'instant',desc:'follow the ancient road toward the horn',success:'troll'},forest:{type:'support',desc:'travel unseen through the forest',difficulty:7,recommended:'Stealth',success:'troll',failure:'wolf_ring',reason:'One hero chooses the route while another may scout.',effects:{hope:1}},statues:{type:'solo',desc:'decipher the ancient road',difficulty:7,recommended:'Knowledge',success:'troll',failure:'troll',reason:'A specialist studies the symbols closely.',effects:{flag:'ruin',relics:1}}},
+  wolf_ring:{stand:{type:'support',desc:'break through the shadow-wolf ring without bloodshed',difficulty:7,recommended:'Influence',success:'troll',failure:'wolf_pursuit',reason:'One hero holds their attention while another protects the flank.',failureText:'The wolves refuse to break and force the company into a running retreat toward the ravine.'}},
+  troll:{calm:{type:'support',desc:'calm the wounded troll',difficulty:7,recommended:'Spirit',success:'green_gate',failure:'troll_chase',reason:'One hero earns its attention while one helper may reinforce trust.',effects:{item:'goblin_token',ally:'nim',chapter:2}},rescue:{type:'team',desc:'rescue the trapped goblin child',memberDifficulty:7,need:2,teamSize:3,success:'green_gate',failure:'ravine_fall',dangerous:true,reason:'Distract the troll, free the child and hold the escape route.',effects:{item:'goblin_token',ally:'nim',chapter:2}},drive:{type:'support',desc:'drive away the troll without killing it',difficulty:8,recommended:'Strength',success:'green_gate',failure:'troll_chase',dangerous:true,reason:'One hero leads while another creates an opening.',effects:{chapter:2}}},
+  troll_chase:{bridge:{type:'team',desc:'cut the root bridge after the company crosses',memberDifficulty:6,need:2,teamSize:3,success:'green_gate',failure:'ravine_fall',dangerous:true,reason:'Some heroes cross while others hold the troll back.',effects:{chapter:2}}},
+  ravine_fall:{climb:{type:'support',desc:'climb out of the ravine before nightfall',difficulty:7,recommended:'Agility',success:'green_gate',failure:'green_gate',dangerous:true,reason:'One hero climbs first and anchors the others.',effects:{chapter:2},failEffects:{supplies:-1}}},
+
+  green_gate:{gate:{type:'support',desc:'open the ancient green gate',difficulty:7,recommended:'Craft',success:'survivor_camp',failure:'root_tunnels',reason:'One hero works the mechanism while another braces or translates.',effects:{item:'moon_lantern'}},scout:{type:'solo',desc:'find a hidden way around the gate',difficulty:7,recommended:'Survival',success:'survivor_camp',failure:'root_tunnels',reason:'A lone scout can move quietly and read the terrain.'},road:{type:'instant',desc:'follow the survivors’ trail around the wall',success:'root_tunnels'}},
+  root_tunnels:{crawl:{type:'team',desc:'cross the root tunnels beneath the wall',memberDifficulty:6,need:2,teamSize:3,success:'survivor_camp',failure:'fungal_hall',dangerous:true,reason:'The party must crawl, brace collapsing roots and keep direction.'},light:{type:'instant',desc:'follow the faint green light',success:'fungal_hall'}},
+  fungal_hall:{spores:{type:'support',desc:'cross the spore hall without losing anyone',difficulty:7,recommended:'Endurance',success:'survivor_camp',failure:'spore_sick',dangerous:true,reason:'One hero leads while another watches for those becoming disoriented.',effects:{relics:1},failureText:'The company gets through the fungal hall, but several heroes breathe too deeply and stumble into the next gallery disoriented.'}},
+  survivor_camp:{survivors:{type:'support',desc:'free the trapped expedition survivors',difficulty:6,recommended:'Strength',success:'whisper_ruins',failure:'cellar_route',reason:'One hero leads the rescue while another lifts or tends the injured.',effects:{ally:'survivors',hope:1,item:'healing_draught'}},packs:{type:'solo',desc:'recover the sealed expedition packs',difficulty:7,recommended:'Awareness',success:'whisper_ruins',failure:'flooded_court',reason:'A careful search rewards attention.',effects:{supplies:2,item:'smoke_vial'}},trail:{type:'instant',desc:'follow the fresh trail deeper into the ruins',success:'whisper_ruins'}},
+  cellar_route:{dig:{type:'team',desc:'dig a second exit through the cellar wall',memberDifficulty:6,need:2,teamSize:3,success:'whisper_ruins',failure:'whisper_ruins',reason:'Strength, tools and judgement all matter.',effects:{ally:'survivors'},failEffects:{supplies:-1}}},
+  flooded_court:{dive:{type:'solo',desc:'dive for the drifting supply case',difficulty:7,recommended:'Endurance',success:'whisper_ruins',failure:'whisper_ruins',dangerous:true,reason:'Only one swimmer can fit beneath the fallen beam.',effects:{supplies:1,item:'smoke_vial'}}},
+  whisper_ruins:{rescue:{type:'team',desc:'save the trapped scouts as the ruins shift',memberDifficulty:6,need:2,teamSize:3,success:'six_mural',failure:'buried_gallery',dangerous:true,reason:'Several heroes must hold stonework, guide survivors and keep a path clear.',effects:{ally:'scouts'}},map:{type:'solo',desc:'enter the collapsing map chamber',difficulty:7,recommended:'Agility',success:'six_mural',failure:'buried_gallery',dangerous:true,reason:'Only one hero can fit through the gap before it closes.',effects:{item:'map_fragment'}},lantern:{type:'instant',desc:'use the Moon Lantern to reveal the safe path',success:'six_mural',requiresItem:'moon_lantern',effects:{item:'map_fragment'}}},
+  buried_gallery:{lift:{type:'support',desc:'open a buried gallery instead of returning',difficulty:7,recommended:'Strength',success:'six_mural',failure:'six_mural',reason:'One hero lifts while another clears the locking stones.',effects:{item:'silver_key',relics:1}}},
+  six_mural:{study:{type:'support',desc:'interpret the Mural of Six',difficulty:7,recommended:'Knowledge',success:'quiet_fire',failure:'echo_chamber',reason:'One hero interprets while another offers historical or spiritual insight.',effects:{item:'silver_key',relics:1}},touch:{type:'solo',desc:'touch the six-pointed seal',difficulty:7,recommended:'Spirit',success:'quiet_fire',failure:'echo_chamber',dangerous:true,reason:'The seal responds to one mind at a time.',effects:{item:'beacon_shard'}},leave:{type:'instant',desc:'leave the mural untouched',success:'quiet_fire'}},
+  echo_chamber:{answer:{type:'support',desc:'answer the voices beneath the mural',difficulty:7,recommended:'Spirit',success:'quiet_fire',failure:'quiet_fire',reason:'One hero answers while another anchors them to the present.',effects:{relics:1},failEffects:{threat:1}}},
+  quiet_fire:{talk:{type:'instant',desc:'share what the company is afraid of',success:'goblin_border',effects:{hope:1,chapter:3}},study:{type:'solo',desc:'study the recovered relics by firelight',difficulty:6,recommended:'Knowledge',success:'goblin_border',failure:'goblin_border',reason:'A quiet specialist task.',effects:{relics:1,chapter:3}},rest:{type:'instant',desc:'rest and move at first light',success:'goblin_border',effects:{chapter:3}}},
+
+  goblin_border:{token:{type:'instant',desc:'show Nim’s Goblin Bone Token',success:'council',requiresItem:'goblin_token',effects:{ally:'goblin_clan'}},speak:{type:'support',desc:'convince the sentries you mean no harm',difficulty:7,recommended:'Influence',success:'council',failure:'goblin_capture',reason:'One hero speaks; another may reinforce the case.',effects:{ally:'goblin_clan'}},bypass:{type:'solo',desc:'slip around the goblin border unseen',difficulty:7,recommended:'Stealth',success:'council',failure:'hunter_trap',reason:'A single infiltrator is harder to spot.',failEffects:{threat:1}}},
+  goblin_capture:{truth:{type:'support',desc:'win over the goblin elder from inside the cage',difficulty:6,recommended:'Influence',success:'council',failure:'escape_cage',reason:'Words matter more than force here.',effects:{ally:'goblin_clan'}},escape:{type:'solo',desc:'pick the cage lock after dark',difficulty:7,recommended:'Stealth',success:'escape_cage',failure:'escape_cage',reason:'One pair of hands at the lock.'}},
+  escape_cage:{river:{type:'instant',desc:'escape through the river culvert',success:'council',effects:{threat:1}}},
+  hunter_trap:{free:{type:'support',desc:'free the trapped hero before hunters arrive',difficulty:6,recommended:'Craft',success:'council',failure:'hunters_camp',reason:'One hero works the trap while another watches the path.',failureText:'The mechanism will not release before Serayne’s hunters arrive, so the company is taken uphill under guard.',failEffects:{threat:1}}},
+  council:{village:{type:'instant',desc:'promise to help Serayne protect her people',success:'medicine_choice',effects:{ally:'serayne'}},expedition:{type:'instant',desc:'put the expedition survivors first',success:'medicine_choice',effects:{supplies:2}},truth:{type:'support',desc:'press Serayne for the truth of the old war',difficulty:7,recommended:'Influence',success:'archive_night',failure:'medicine_choice',reason:'One hero presses the question while another notices what is unsaid.',effects:{relics:1}}},
+  archive_night:{read:{type:'support',desc:'decode the forbidden account of the old war',difficulty:7,recommended:'Knowledge',success:'medicine_choice',failure:'medicine_choice',reason:'One reads; another compares symbols and dates.',effects:{flag:'old_war_truth',item:'map_fragment'}}},
+  medicine_choice:{give:{type:'instant',desc:'leave the medicine with the settlement',success:'broken_keep',effects:{ally:'village'}},trade:{type:'instant',desc:'trade expedition equipment for a share',success:'broken_keep',effects:{supplies:-2,item:'healing_draught'}},search:{type:'support',desc:'search the marsh for another source',difficulty:7,recommended:'Survival',success:'broken_keep',failure:'marsh_night',reason:'One hero identifies moonleaf while another guards the search.',effects:{ally:'village',item:'healing_draught'}}},
+  marsh_night:{shelter:{type:'team',desc:'survive the marsh night and bring back enough moonleaf',memberDifficulty:6,need:2,teamSize:3,success:'broken_keep',failure:'broken_keep',dangerous:true,reason:'Navigation, shelter and gathering must happen together.',effects:{item:'healing_draught'},failEffects:{threat:1}}},
+  broken_keep:{shield:{type:'instant',desc:'take the Sunsteel Shield',success:'ash_sails',effects:{item:'sunsteel_shield'}},orb:{type:'instant',desc:'take the Glassfire Orb',success:'ash_sails',effects:{item:'glassfire_orb'}},lens:{type:'instant',desc:'take the Architect’s Lens',success:'ash_sails',effects:{item:'architects_lens'}}},
+  ash_sails:{prepare:{type:'support',desc:'prepare the settlement for the Order of Ash',difficulty:7,recommended:'Craft',success:'ash_coast',failure:'ash_coast',reason:'One hero organises the work while another fortifies or coordinates.',effects:{supplies:1,chapter:4}},watch:{type:'solo',desc:'observe the black-sailed fleet unnoticed',difficulty:7,recommended:'Awareness',success:'ash_coast',failure:'ash_coast',reason:'A lone observer is harder to detect.',effects:{relics:1,chapter:4}},wait:{type:'instant',desc:'wait for the Order to make its first move',success:'ash_coast',effects:{chapter:4}}},
+
+  ash_coast:{infiltrate:{type:'support',desc:'infiltrate the Order of Ash beach camp',difficulty:7,recommended:'Stealth',success:'ash_archive',failure:'ash_prison',reason:'One hero slips inside while one helper creates a distraction.',effects:{relics:1}},smoke:{type:'instant',desc:'use the Smoke Vial to cross the camp',success:'ash_archive',requiresItem:'smoke_vial',effects:{consume:'smoke_vial'}},parley:{type:'instant',desc:'walk openly into the camp and request parley',success:'vael_parley'}},
+  ash_prison:{escape:{type:'team',desc:'escape the Order holding pen before dawn',memberDifficulty:6,need:2,teamSize:3,success:'ash_archive',failure:'vael_parley',dangerous:true,reason:'Locks, guards and wounded prisoners must be handled together.',effects:{item:'ash_cipher'},failEffects:{threat:1}}},
+  ash_archive:{cipher:{type:'solo',desc:'decode the Order’s sealed field orders',difficulty:7,recommended:'Knowledge',success:'vael_parley',failure:'vael_parley',reason:'A single reader must follow the cipher sequence.',effects:{item:'ash_cipher',flag:'ash_plan'}},leave:{type:'instant',desc:'leave before the patrol returns',success:'vael_parley'}},
+  vael_parley:{listen:{type:'instant',desc:'hear Commander Vael’s plan',success:'traitor_reveal'},challenge:{type:'support',desc:'challenge Vael’s account without starting a fight',difficulty:7,recommended:'Influence',success:'traitor_reveal',failure:'order_duel',reason:'One hero argues the case while another presents evidence.',effects:{hope:1}},shard:{type:'solo',desc:'sense what Vael’s beacon shard is doing to him',difficulty:7,recommended:'Spirit',success:'traitor_reveal',failure:'traitor_reveal',reason:'This needs focused magical or spiritual perception.',effects:{flag:'vael_doubt'}}},
+  order_duel:{stand:{type:'solo',desc:'stand your ground in Vael’s trial by combat',difficulty:8,recommended:'Strength',success:'traitor_reveal',failure:'traitor_reveal',dangerous:true,reason:'The challenge is deliberately one-on-one.',effects:{flag:'vael_respect'}}},
+  traitor_reveal:{key:{type:'instant',desc:'use the Silver Key on Thorne’s hidden compartment',success:'thorne_choice',requiresItem:'silver_key',effects:{item:'map_fragment',flag:'thorne_exposed'}},confront:{type:'support',desc:'confront Elias Thorne with the evidence',difficulty:7,recommended:'Influence',success:'thorne_choice',failure:'thorne_flees',reason:'One hero confronts him while another backs the accusation.',effects:{flag:'thorne_exposed',item:'map_fragment'}},search:{type:'solo',desc:'search Thorne’s quarters before he returns',difficulty:7,recommended:'Stealth',success:'thorne_choice',failure:'thorne_flees',reason:'One quiet infiltrator has the best chance.',effects:{item:'map_fragment'}}},
+  thorne_flees:{chase:{type:'support',desc:'catch Thorne before he reaches the signal ridge',difficulty:7,recommended:'Agility',success:'thorne_choice',failure:'escape_coast',reason:'One hero leads the chase while another cuts him off.',effects:{flag:'thorne_exposed'},failEffects:{threat:1}}},
+  thorne_choice:{forgive:{type:'instant',desc:'keep Thorne with the expedition under guard',success:'escape_coast',effects:{ally:'thorne'}},banish:{type:'instant',desc:'send Thorne away from the company',success:'escape_coast',effects:{hope:1}},question:{type:'support',desc:'force Thorne to explain how the storm device works',difficulty:6,recommended:'Influence',success:'escape_coast',failure:'escape_coast',reason:'One hero questions; another verifies the technical details.',effects:{flag:'storm_device_known',item:'map_fragment'}}},
+  escape_coast:{boat:{type:'instant',desc:'use the lifeboat saved in the storm',success:'mountain_gate',requiresFlag:'boats',effects:{hope:1,chapter:5}},horn:{type:'instant',desc:'recover Captain Veyra’s Signal Horn',success:'mountain_gate',effects:{item:'signal_horn',chapter:5}},run:{type:'team',desc:'break through the Order patrols',memberDifficulty:7,need:2,teamSize:3,success:'mountain_gate',failure:'ash_canyon',dangerous:true,reason:'The company must move under pressure while protecting the slowest members.',effects:{chapter:5}}},
+  ash_canyon:{bridge:{type:'support',desc:'repair the canyon bridge before the Order catches you',difficulty:7,recommended:'Craft',success:'mountain_gate',failure:'canyon_floor',reason:'One hero repairs while another holds the line.',failEffects:{supplies:-1},failureText:'The repaired span gives way before it can take the company’s weight, forcing everyone down onto the canyon floor.'}},
+
+  mountain_gate:{maps:{type:'instant',desc:'align three Ancient Map Fragments',success:'vault_puzzle',requiresItemCount:{id:'map_fragment',count:3}},bypass:{type:'support',desc:'bypass the mountain gate mechanism',difficulty:8,recommended:'Craft',success:'vault_puzzle',failure:'undergate_chasm',reason:'One specialist works the ancient lock while another manages counterweights.'},orb:{type:'instant',desc:'use the Glassfire Orb on the sealed arch',success:'vault_puzzle',requiresItem:'glassfire_orb',effects:{consume:'glassfire_orb'}}},
+  undergate_chasm:{cross:{type:'team',desc:'cross the chasm beneath the sealed gate',memberDifficulty:7,need:2,teamSize:3,success:'vault_puzzle',failure:'hanging_platform',dangerous:true,reason:'Ropes, climbing and moving counterweights all happen together.',failureText:'One of the hanging platforms tears free, leaving the company stranded on a lower maintenance shelf beneath the intended route.'}},
+  vault_puzzle:{lens:{type:'instant',desc:'use the Architect’s Lens',success:'heart_chamber',requiresItem:'architects_lens',effects:{consume:'architects_lens',relics:1}},six:{type:'team',desc:'activate the six stations together',memberDifficulty:6,need:2,teamSize:3,success:'heart_chamber',failure:'mirror_vault',reason:'The mechanism was designed for several roles working together.',effects:{item:'aranorian_alloy',flag:'six_stations_solved'}},force:{type:'support',desc:'force the central mechanism before it resets',difficulty:8,recommended:'Craft',success:'heart_chamber',failure:'mirror_vault',dangerous:true,reason:'One hero leads the risky repair while another stabilises the machinery.'}},
+  mirror_vault:{reflections:{type:'team',desc:'escape the mirror vault by identifying what is real',memberDifficulty:6,need:2,teamSize:3,success:'heart_chamber',failure:'mirror_detour',reason:'Different heroes notice different contradictions.',effects:{relics:1},failureText:'The company follows the wrong reflection into a false gallery before the illusion closes behind them.'}},
+  heart_chamber:{shield:{type:'instant',desc:'use the Sunsteel Shield to approach the Heart safely',success:'heart_truth',requiresItem:'sunsteel_shield',effects:{consume:'sunsteel_shield'}},study:{type:'support',desc:'understand what the Heart truly is',difficulty:7,recommended:'Knowledge',success:'heart_truth',failure:'heart_vision',reason:'One hero studies the power while another offers magical, spiritual or mechanical insight.',effects:{flag:'heart_understood',relics:1}},take:{type:'solo',desc:'take a controlled shard from the Heart',difficulty:8,recommended:'Spirit',success:'heart_truth',failure:'heart_vision',dangerous:true,reason:'Only one person can approach closely enough.',effects:{item:'beacon_shard'}}},
+  heart_vision:{anchor:{type:'support',desc:'pull the affected hero out of the Heart’s vision',difficulty:7,recommended:'Spirit',success:'heart_truth',failure:'heart_truth',reason:'One hero calls them back while another anchors them physically.',effects:{flag:'heart_understood'},failEffects:{threat:1}}},
+  heart_truth:{sigil:{type:'support',desc:'bind a Heart Sigil for the final beacon',difficulty:7,recommended:'Craft',success:'collapse',failure:'collapse',reason:'One hero shapes the sigil while another stabilises the energy.',effects:{items:['heart_sigil','keeper_crystal'],flag:'keeper_crystal_found'}},leave:{type:'instant',desc:'leave the Heart untouched and withdraw',success:'collapse'}},
+  collapse:{escape:{type:'team',desc:'escape the collapsing mountain vault',memberDifficulty:7,need:2,teamSize:3,success:'final_road',failure:'buried_exit',dangerous:true,reason:'Heroes must hold doors, guide the wounded and keep the path open.',effects:{chapter:6}},seal:{type:'support',desc:'stabilise the failing gate before fleeing',difficulty:8,recommended:'Craft',success:'final_road',failure:'buried_exit',dangerous:true,reason:'One hero repairs while another shields them from falling stone.',effects:{hope:1,flag:'gate_stable',chapter:6}}},
+  buried_exit:{dig:{type:'team',desc:'dig through the buried eastern exit',memberDifficulty:6,need:2,teamSize:3,success:'final_road',failure:'final_road',reason:'The party must conserve air while clearing stone.',failEffects:{supplies:-1,threat:1},effects:{chapter:6}}},
+
+  final_road:{horn:{type:'instant',desc:'sound Captain Veyra’s Signal Horn',success:'allies_arrive',requiresItem:'signal_horn',effects:{ally:'final_reinforcements'}},march:{type:'instant',desc:'march directly for the beacon',success:'allies_arrive'},secret:{type:'support',desc:'find the forgotten approach to the Last Beacon',difficulty:7,recommended:'Survival',success:'allies_arrive',failure:'night_assault',reason:'One hero finds the route while another compares maps or watches pursuit.',effects:{hope:1}}},
+  night_assault:{hold:{type:'team',desc:'survive the Order’s night assault on the road',memberDifficulty:7,need:2,teamSize:3,success:'allies_arrive',failure:'allies_arrive',dangerous:true,reason:'The company must defend, retreat and protect the wounded at once.',failEffects:{threat:1}}},
+  allies_arrive:{rally:{type:'support',desc:'rally every ally the party has earned',difficulty:6,recommended:'Influence',success:'siege_gate',failure:'siege_gate',reason:'One hero speaks while the party’s past deeds provide the proof.',effects:{hope:1}},rush:{type:'instant',desc:'do not wait — reach the city now',success:'siege_gate'}},
+  siege_gate:{open:{type:'team',desc:'break the siege at the city gate',memberDifficulty:7,need:2,teamSize:3,success:'beacon_tower',failure:'lower_city',dangerous:true,reason:'Combat, mechanisms and rescue all happen simultaneously.'},secret:{type:'instant',desc:'use the Heart Sigil to wake the forgotten gate',success:'beacon_tower',requiresItem:'heart_sigil'}},
+  lower_city:{roofs:{type:'support',desc:'cross the burning lower city by the rooftops',difficulty:7,recommended:'Agility',success:'beacon_tower',failure:'burning_courtyard',dangerous:true,reason:'One hero leads; one keeps the route open.',failureText:'The rooftop route collapses beneath the company, forcing everyone down into the burning lower streets.',failEffects:{threat:1}}},
+  beacon_tower:{vael:{type:'support',desc:'persuade Vael to stand down before the Heart overloads',difficulty:8,recommended:'Influence',success:'final_stand',failure:'final_stand',reason:'One hero speaks while another presents what the party learned.',effects:{ally:'vael'}},climb:{type:'team',desc:'fight and climb through the collapsing beacon tower',memberDifficulty:7,need:2,teamSize:3,success:'final_stand',failure:'final_stand',dangerous:true,reason:'The route requires every kind of hero at once.'}},
+  final_stand:{protect:{type:'team',desc:'hold the chamber while the beacon controls awaken',memberDifficulty:7,need:2,teamSize:3,success:'finale_crisis',failure:'finale_crisis',dangerous:true,reason:'Three jobs must happen at once. The party decides who is trusted with each one.',teamRoles:[{name:'Hold the stair',skills:['Strength','Endurance','Agility']},{name:'Wake the controls',skills:['Craft','Knowledge','Awareness']},{name:'Keep everyone standing',skills:['Spirit','Influence','Endurance']}],effects:{flag:'final_stand_won'},failEffects:{threat:1}}},
+  finale_crisis:{gate:{type:'instant',desc:'send the company to hold the western gate',success:'last_beacon',effects:{flag:'saved_gate',finalCrisis:'gate'}},people:{type:'instant',desc:'send the company below to rescue trapped families',success:'last_beacon',effects:{flag:'saved_people',finalCrisis:'people'}},heart:{type:'instant',desc:'stay at the controls and stabilise the Heart',success:'last_beacon',effects:{flag:'stabilised_heart',finalCrisis:'heart'}}},
+  last_beacon:{seal:{type:'instant',desc:'restore the ancient seal',success:'final_cost',effects:{finalChoice:'seal',flag:'config_seal'}},open:{type:'instant',desc:'open Aranor to the world',success:'final_cost',requiresFlag:'heart_understood',effects:{finalChoice:'open',flag:'config_open'}},steward:{type:'instant',desc:'entrust the Heart to Aranor’s peoples',success:'final_cost',requiresFlag:'stewardship_unlocked',effects:{finalChoice:'steward',flag:'config_steward'}}},
+  final_cost:{commit:{type:'team',desc:'commit the company to the choice and stabilise the Heart',memberDifficulty:7,need:2,teamSize:3,success:'dawn',failure:'dawn',dangerous:true,reason:'The final choice only becomes real if three different parts of the system are held together.',teamRoles:[{name:'Bind the Heart',skills:['Knowledge','Spirit','Influence']},{name:'Hold the structure',skills:['Strength','Craft','Endurance']},{name:'Guide the power',skills:['Awareness','Survival','Agility']}],effects:{flag:'clean_finale'},failEffects:{flag:'scarred_finale'}}},
+  dawn:{finish:{type:'instant',desc:'step outside and see what your choice has made',success:'@final'}}
+};
+
+
+// --- REMAKE EXPANSION: slower travel, exploration, route arcs and split-party battle ---
+Object.assign(actionMap,{
+  east_river:{
+    read:{type:'solo',lowStakes:true,desc:'study the riverbank for signs of the old road',difficulty:6,allowedSkills:['Awareness','Survival'],success:'east_reeds',failure:'east_reeds',effects:{flag:'east_shortcut'},outcomeText:'noticed old ferry marks that reveal a quicker crossing later'},
+    move:{type:'instant',desc:'follow the river upstream',success:'east_reeds'}
+  },
+  east_reeds:{
+    cross:{type:'support',desc:'pick a careful line through the flooded road',difficulty:6,allowedSkills:['Survival','Agility'],supportSkills:['Awareness','Craft'],success:'old_ferry',failure:'old_ferry',reason:'One hero chooses the footing while another watches the pack and current.',failEffects:{supplies:-1}},
+    wade:{type:'instant',desc:'wade straight through the flooded road',success:'old_ferry',effects:{threat:1}}
+  },
+  old_ferry:{
+    search:{type:'solo',lowStakes:true,desc:'search the abandoned ferry keeper’s hut',difficulty:6,allowedSkills:['Awareness','Knowledge'],success:'cedar_hollow',failure:'cedar_hollow',effects:{supplies:1,flag:'ferry_notes'},outcomeText:'found a few usable supplies and notes about the inland crossing'},
+    continue:{type:'instant',desc:'leave the ferry station behind',success:'cedar_hollow'}
+  },
+  cedar_hollow:{
+    markers:{type:'solo',lowStakes:true,desc:'look for old route markers among the roots',difficulty:6,allowedSkills:['Awareness','Knowledge'],success:'east_camp',failure:'east_camp',effects:{flag:'east_shortcut'},outcomeText:'identified the old cedar route markers'},
+    navigate:{type:'solo',desc:'navigate the cedar hollow without losing the road',difficulty:6,allowedSkills:['Survival','Awareness'],success:'east_camp',failure:'east_camp',failEffects:{threat:1}}
+  },
+  east_camp:{
+    repair:{type:'solo',lowStakes:true,desc:'repair damaged packs beside the river',difficulty:6,allowedSkills:['Craft','Knowledge'],success:'stone_ford',failure:'stone_ford',effects:{supplies:1},outcomeText:'repaired enough damaged gear to preserve a supply'},
+    rest:{type:'instant',desc:'rest beside the river and leave at dawn',success:'stone_ford'}
+  },
+  stone_ford:{
+    cross:{type:'team',desc:'cross the Stone Ford in the strong current',memberDifficulty:6,teamSize:3,success:'troll',failure:'troll',dangerous:true,reason:'Balance, strength and route choice all matter in the current.',teamRoles:[{name:'Choose the line',skills:['Survival','Awareness']},{name:'Secure the crossing',skills:['Strength','Craft']},{name:'Move the packs',skills:['Agility','Endurance']}],failEffects:{supplies:-1}},
+    shortcut:{type:'instant',desc:'use the ferry keeper’s hidden crossing',success:'troll',requiresFlag:'east_shortcut',effects:{hope:1}}
+  },
+
+  west_ridge:{
+    survey:{type:'solo',lowStakes:true,desc:'survey the inland valleys from the ridge',difficulty:6,allowedSkills:['Awareness','Survival'],success:'ruined_watch',failure:'ruined_watch',effects:{flag:'west_shortcut'},outcomeText:'spotted an animal trail that cuts down toward the old road'},
+    climb:{type:'instant',desc:'continue along the western ridge',success:'ruined_watch'}
+  },
+  ruined_watch:{
+    enter:{type:'support',desc:'open a way into the ruined watchtower',difficulty:6,allowedSkills:['Strength','Craft'],supportSkills:['Awareness','Craft'],success:'high_forest',failure:'high_forest',effects:{item:'map_fragment'}},
+    tracks:{type:'solo',lowStakes:true,desc:'inspect the recent campsite beside the tower',difficulty:6,allowedSkills:['Awareness','Survival'],success:'high_forest',failure:'high_forest',effects:{flag:'survivors_ahead'},outcomeText:'confirmed that expedition survivors passed this way recently'},
+    pass:{type:'instant',desc:'leave the watchtower and keep to the ridge',success:'high_forest'}
+  },
+  high_forest:{
+    sense:{type:'solo',lowStakes:true,desc:'stop and listen to the high forest before moving',difficulty:6,allowedSkills:['Awareness','Spirit'],success:'rain_shelf',failure:'rain_shelf',effects:{flag:'wolves_heard'},outcomeText:'heard a pack moving parallel to the route before it came close'},
+    trail:{type:'solo',desc:'follow the ridge by the slope beneath your feet',difficulty:6,allowedSkills:['Survival','Awareness'],success:'rain_shelf',failure:'wolf_ring',failEffects:{threat:1}}
+  },
+  rain_shelf:{
+    shelter:{type:'solo',lowStakes:true,desc:'inspect the stone shelf while waiting out the rain',difficulty:6,allowedSkills:['Knowledge','Awareness'],success:'wolf_sign',failure:'wolf_sign',effects:{flag:'old_watch_marks'},outcomeText:'found old watch marks showing where the ridge descends safely'},
+    push:{type:'support',desc:'push through the mountain rain',difficulty:7,allowedSkills:['Endurance','Agility'],supportSkills:['Survival','Craft'],success:'wolf_sign',failure:'wolf_sign',failEffects:{supplies:-1}}
+  },
+  wolf_sign:{
+    study:{type:'solo',lowStakes:true,desc:'study the wolf tracks without pursuing them',difficulty:6,allowedSkills:['Survival','Awareness'],success:'west_descent',failure:'west_descent',effects:{flag:'west_shortcut'},outcomeText:'identified a safe animal trail down from the ridge'},
+    move:{type:'instant',desc:'keep the company together and begin the descent',success:'west_descent'}
+  },
+  west_descent:{
+    descend:{type:'team',desc:'descend the broken ridge safely',memberDifficulty:6,teamSize:3,success:'troll',failure:'troll',dangerous:true,reason:'The slope needs route-finding, balance and help with the packs.',teamRoles:[{name:'Find stable ground',skills:['Survival','Awareness']},{name:'Rig the descent',skills:['Craft','Strength']},{name:'Move across loose stone',skills:['Agility','Endurance']}],failEffects:{supplies:-1}},
+    trail:{type:'instant',desc:'use the safer animal trail discovered on the ridge',success:'troll',requiresFlag:'west_shortcut',effects:{hope:1}}
+  },
+
+  marsh_route:{
+    sense:{type:'solo',lowStakes:true,desc:'look for the old causeway beneath the marsh',difficulty:6,allowedSkills:['Awareness','Knowledge'],success:'reed_islands',failure:'reed_islands',effects:{flag:'marsh_causeway'},outcomeText:'found the line of the buried causeway beneath the water'},
+    go:{type:'instant',desc:'follow the driest ground across the marsh',success:'reed_islands'}
+  },
+  reed_islands:{
+    smoke:{type:'solo',desc:'approach the distant smoke without being noticed',difficulty:6,allowedSkills:['Stealth','Awareness'],success:'moon_pool',failure:'moon_pool',effects:{supplies:1},failEffects:{threat:1}},
+    route:{type:'support',desc:'follow the surviving causeway stones',difficulty:6,allowedSkills:['Survival','Awareness'],supportSkills:['Craft','Knowledge'],success:'moon_pool',failure:'moon_pool'}
+  },
+  moon_pool:{
+    inspect:{type:'solo',lowStakes:true,desc:'inspect the submerged steps at the Moon Pool',difficulty:7,allowedSkills:['Knowledge','Spirit'],success:'marsh_shelter',failure:'marsh_shelter',effects:{relics:1,flag:'moon_pool_seen'},outcomeText:'recognised the pool as an old way-shrine and recovered a small relic'},
+    leave:{type:'instant',desc:'leave the Moon Pool untouched',success:'marsh_shelter'}
+  },
+  marsh_shelter:{
+    search:{type:'solo',lowStakes:true,desc:'search the abandoned reed shelter',difficulty:6,allowedSkills:['Awareness','Craft'],success:'marsh_exit',failure:'marsh_exit',effects:{supplies:1},outcomeText:'found dry cordage and preserved food tucked beneath the floor'},
+    sleep:{type:'instant',desc:'post watches and rest in the shelter',success:'marsh_exit',effects:{hope:1}}
+  },
+  marsh_exit:{finish:{type:'instant',desc:'leave the marsh and approach the painted shields',success:'goblin_border',effects:{chapter:3}}},
+
+  ridge_route:{
+    look:{type:'solo',lowStakes:true,desc:'study the horizon from the Old King’s Ridge',difficulty:6,allowedSkills:['Awareness','Survival'],success:'stone_steps',failure:'stone_steps',effects:{flag:'ridge_map'},outcomeText:'mapped the line of the ridge and the valley roads below'},
+    go:{type:'instant',desc:'follow the high road toward the standing stones',success:'stone_steps'}
+  },
+  stone_steps:{
+    climb:{type:'support',desc:'climb the Seven Hundred Steps without exhausting the company',difficulty:6,allowedSkills:['Endurance','Survival'],supportSkills:['Spirit','Strength'],success:'eagle_ledge',failure:'eagle_ledge'},
+    marks:{type:'solo',lowStakes:true,desc:'study the numbered stones beside the stair',difficulty:6,allowedSkills:['Knowledge','Awareness'],success:'eagle_ledge',failure:'eagle_ledge',effects:{flag:'ridge_shrine_hint'},outcomeText:'noticed the numbers mark safe shelters along the old military road'}} ,
+  eagle_ledge:{
+    cross:{type:'team',desc:'cross the Eagle Ledge safely',memberDifficulty:6,teamSize:3,success:'ridge_shrine',failure:'ridge_shrine',dangerous:true,reason:'A narrow ledge demands balance, rope work and steady nerves.',teamRoles:[{name:'Lead the crossing',skills:['Agility','Awareness']},{name:'Secure the rope',skills:['Craft','Strength']},{name:'Steady the company',skills:['Endurance','Spirit']}],failEffects:{supplies:-1}},
+    wait:{type:'solo',lowStakes:true,desc:'watch the nesting birds before attempting the ledge',difficulty:6,allowedSkills:['Survival','Awareness'],success:'ridge_shrine',failure:'ridge_shrine',effects:{hope:1},outcomeText:'waited until the birds settled and found a calmer crossing window'}
+  },
+  ridge_shrine:{
+    read:{type:'solo',lowStakes:true,desc:'examine the offerings at the roofless shrine',difficulty:6,allowedSkills:['Knowledge','Spirit'],success:'ridge_descent',failure:'ridge_descent',effects:{flag:'goblin_customs'},outcomeText:'recognised the offerings as signs of safe passage used by local clans'},
+    camp:{type:'instant',desc:'camp beside the shrine and descend at dawn',success:'ridge_descent',effects:{hope:1}}
+  },
+  ridge_descent:{finish:{type:'instant',desc:'descend toward the painted shields',success:'goblin_border',effects:{chapter:3}}},
+
+  cliff_route:{
+    watch:{type:'solo',lowStakes:true,desc:'watch the black fleet from the sea cliffs',difficulty:6,allowedSkills:['Awareness','Knowledge'],success:'salt_steps',failure:'salt_steps',effects:{flag:'ash_patrols'},outcomeText:'identified the patrol cycle around the Order landing'},
+    move:{type:'instant',desc:'continue along the sea-cliff road',success:'salt_steps'}
+  },
+  salt_steps:{
+    rings:{type:'solo',lowStakes:true,desc:'inspect the old cargo rings on the Salt Steps',difficulty:6,allowedSkills:['Craft','Awareness'],success:'storm_shelf',failure:'storm_shelf',effects:{flag:'cliff_supply_cache'},outcomeText:'found signs that a sealed supply niche still exists beneath the steps'},
+    descend:{type:'support',desc:'descend the salt-slick steps safely',difficulty:6,allowedSkills:['Agility','Endurance'],supportSkills:['Craft','Survival'],success:'storm_shelf',failure:'storm_shelf'}
+  },
+  storm_shelf:{
+    cross:{type:'team',desc:'cross the exposed Storm Shelf',memberDifficulty:6,teamSize:3,success:'sea_cave_watch',failure:'sea_cave_watch',dangerous:true,reason:'Wind, footing and packs all need attention.',teamRoles:[{name:'Read the gusts',skills:['Awareness','Survival']},{name:'Secure the line',skills:['Craft','Strength']},{name:'Cross the shelf',skills:['Agility','Endurance']}],failEffects:{supplies:-1}},
+    hide:{type:'solo',lowStakes:true,desc:'observe the Order camp from a rock cleft',difficulty:6,allowedSkills:['Awareness','Stealth'],success:'sea_cave_watch',failure:'sea_cave_watch',effects:{flag:'ash_patrols'},outcomeText:'learned the beach patrol timing without being seen'}
+  },
+  sea_cave_watch:{
+    study:{type:'solo',lowStakes:true,desc:'study the Order patrol pattern from the sea cave',difficulty:6,allowedSkills:['Awareness','Knowledge'],success:'cliff_camp',failure:'cliff_camp',effects:{flag:'ash_patrols'},outcomeText:'found a repeating gap in the Order patrols'},
+    leave:{type:'instant',desc:'leave before the tide reaches the cave',success:'cliff_camp'}
+  },
+  cliff_camp:{
+    prepare:{type:'solo',lowStakes:true,desc:'prepare equipment for the approach to the Order camp',difficulty:6,allowedSkills:['Craft','Stealth'],success:'black_beach',failure:'black_beach',effects:{supplies:1},outcomeText:'prepared ropes, wrappings and tools for a quieter approach'},
+    rest:{type:'instant',desc:'rest above the beach until the moon sets',success:'black_beach'}
+  },
+  black_beach:{finish:{type:'instant',desc:'move into position at the edge of the Order camp',success:'ash_coast',effects:{chapter:4}}},
+
+  quarry_route:{
+    tracks:{type:'solo',lowStakes:true,desc:'study the fresh wheel tracks crossing the quarry road',difficulty:6,allowedSkills:['Awareness','Survival'],success:'cut_stone',failure:'cut_stone',effects:{flag:'quarry_supply_route'},outcomeText:'identified the tracks as Order supply carts heading toward the coast'},
+    move:{type:'instant',desc:'follow the abandoned quarry road',success:'cut_stone'}
+  },
+  cut_stone:{
+    listen:{type:'solo',lowStakes:true,desc:'listen before entering the lanes of cut stone',difficulty:6,allowedSkills:['Awareness','Stealth'],success:'abandoned_crane',failure:'abandoned_crane',effects:{flag:'quarry_patrol'},outcomeText:'located a small Order work detail before it crossed your path'},
+    cross:{type:'support',desc:'cross the quarry lanes without being spotted',difficulty:6,allowedSkills:['Stealth','Awareness'],supportSkills:['Agility','Survival'],success:'abandoned_crane',failure:'abandoned_crane',failEffects:{threat:1}}
+  },
+  abandoned_crane:{
+    repair:{type:'support',desc:'raise the fallen crane beam with its old counterweight',difficulty:6,allowedSkills:['Craft','Strength'],supportSkills:['Knowledge','Endurance'],success:'dust_camp',failure:'dust_camp'},
+    crawl:{type:'solo',desc:'crawl beneath the fallen crane',difficulty:6,allowedSkills:['Agility','Endurance'],success:'dust_camp',failure:'dust_camp',dangerous:true}
+  },
+  dust_camp:{
+    search:{type:'solo',lowStakes:true,desc:'search the abandoned camp in the quarry dust',difficulty:6,allowedSkills:['Awareness','Knowledge'],success:'hidden_cartway',failure:'hidden_cartway',effects:{item:'ash_cipher'},outcomeText:'found a discarded Order field cipher among the ashes'},
+    leave:{type:'instant',desc:'leave the campsite and keep moving',success:'hidden_cartway'}
+  },
+  hidden_cartway:{
+    tunnel:{type:'support',desc:'follow the hidden cartway beneath the ridge',difficulty:6,allowedSkills:['Knowledge','Craft'],supportSkills:['Awareness','Survival'],success:'quarry_exit',failure:'quarry_exit',effects:{flag:'ash_back_route'}},
+    road:{type:'instant',desc:'stay on the surface road',success:'quarry_exit'}
+  },
+  quarry_exit:{finish:{type:'instant',desc:'descend from the quarry toward the Order landing',success:'ash_coast',effects:{chapter:4}}},
+
+  high_pass:{
+    read:{type:'solo',lowStakes:true,desc:'read the weather before climbing into the High Pass',difficulty:6,allowedSkills:['Survival','Awareness'],success:'goat_track',failure:'goat_track',effects:{flag:'pass_weather'},outcomeText:'identified the safest weather window for the high route'},
+    go:{type:'instant',desc:'climb into the High Pass',success:'goat_track'}
+  },
+  goat_track:{
+    cross:{type:'team',desc:'cross the exposed Goat Track',memberDifficulty:6,teamSize:3,success:'ice_bridge',failure:'ice_bridge',dangerous:true,reason:'The group needs route-finding, rope work and balance.',teamRoles:[{name:'Lead the track',skills:['Agility','Awareness']},{name:'Rig the line',skills:['Craft','Strength']},{name:'Protect the packs',skills:['Endurance','Survival']}],failEffects:{supplies:-1}},
+    seek:{type:'solo',lowStakes:true,desc:'look for signs of an older mountain path',difficulty:6,allowedSkills:['Awareness','Knowledge'],success:'ice_bridge',failure:'ice_bridge',effects:{flag:'pass_shortcut'},outcomeText:'found old chisel marks revealing a safer line across the cliff'}
+  },
+  ice_bridge:{
+    cross:{type:'support',desc:'cross the frozen spillway one at a time',difficulty:7,allowedSkills:['Agility','Endurance'],supportSkills:['Survival','Spirit'],success:'pass_camp',failure:'pass_camp',dangerous:true},
+    anchor:{type:'support',desc:'build an anchor line across the ice',difficulty:6,allowedSkills:['Craft','Strength'],supportSkills:['Knowledge','Endurance'],success:'pass_camp',failure:'pass_camp'}
+  },
+  pass_camp:{
+    search:{type:'solo',lowStakes:true,desc:'inspect the high cave before sleeping',difficulty:6,allowedSkills:['Awareness','Knowledge'],success:'watch_peak',failure:'watch_peak',effects:{item:'map_fragment'},outcomeText:'found an old route sketch scratched into a copper plate'},
+    rest:{type:'instant',desc:'share warmth and rest above the clouds',success:'watch_peak',effects:{hope:1}}
+  },
+  watch_peak:{
+    map:{type:'solo',lowStakes:true,desc:'map the hidden descent from Watch Peak',difficulty:6,allowedSkills:['Awareness','Survival'],success:'high_descent',failure:'high_descent',effects:{flag:'mountain_back_route'},outcomeText:'fixed the hidden descent in memory before the clouds returned'},
+    descend:{type:'instant',desc:'begin the descent toward the Mountain Gate',success:'high_descent'}
+  },
+  high_descent:{arrive:{type:'instant',desc:'reach the Mountain Gate from above',success:'@merge:mountain_routes:mountain_gate',effects:{chapter:5}}},
+
+  deep_rootway:{
+    sense:{type:'solo',lowStakes:true,desc:'listen to the stone before entering the Rootway',difficulty:6,allowedSkills:['Knowledge','Spirit'],success:'root_chamber',failure:'root_chamber',effects:{flag:'rootway_pulse'},outcomeText:'felt the faint pulse of Aranorian machinery deeper below'},
+    go:{type:'instant',desc:'descend into the Deep Rootway',success:'root_chamber'}
+  },
+  root_chamber:{
+    read:{type:'solo',lowStakes:true,desc:'read the maintenance marks in the root chamber',difficulty:6,allowedSkills:['Awareness','Knowledge'],success:'underground_river',failure:'underground_river',effects:{flag:'rootway_map'},outcomeText:'identified the maintenance symbols marking the warm-air route'},
+    draft:{type:'solo',desc:'follow the warm draft through the root chamber',difficulty:6,allowedSkills:['Survival','Awareness'],success:'underground_river',failure:'underground_river',failEffects:{threat:1}}
+  },
+  underground_river:{
+    bridge:{type:'team',desc:'rebuild enough of the chain bridge to cross',memberDifficulty:6,teamSize:3,success:'crystal_fissure',failure:'crystal_fissure',dangerous:true,reason:'The crossing needs engineering, strength and safe movement.',teamRoles:[{name:'Restore the chain',skills:['Craft','Knowledge']},{name:'Tension the line',skills:['Strength','Endurance']},{name:'Cross first',skills:['Agility','Awareness']}],failEffects:{supplies:-1}},
+    ledge:{type:'support',desc:'use the maintenance ledge above the river',difficulty:7,allowedSkills:['Agility','Endurance'],supportSkills:['Craft','Spirit'],success:'crystal_fissure',failure:'crystal_fissure',dangerous:true}
+  },
+  crystal_fissure:{
+    sense:{type:'solo',lowStakes:true,desc:'study the golden pulse in the crystal fissure',difficulty:7,allowedSkills:['Knowledge','Spirit'],success:'old_lift',failure:'old_lift',effects:{flag:'heart_understood'},outcomeText:'recognised the pulse as part of the same system as the distant beacons'},
+    pass:{type:'instant',desc:'leave the crystal untouched',success:'old_lift'}
+  },
+  old_lift:{
+    repair:{type:'support',desc:'repair the ancient lift mechanism',difficulty:7,allowedSkills:['Craft','Knowledge'],supportSkills:['Strength','Awareness'],success:'rootway_exit',failure:'rootway_exit'},
+    climb:{type:'team',desc:'climb down the old lift shaft',memberDifficulty:6,teamSize:3,success:'rootway_exit',failure:'rootway_exit',dangerous:true,reason:'Each hero has to manage the descent, gear and the weaker handholds.',teamRoles:[{name:'Find handholds',skills:['Awareness','Agility']},{name:'Secure equipment',skills:['Craft','Strength']},{name:'Control the descent',skills:['Endurance','Spirit']}],failEffects:{supplies:-1}}
+  },
+  rootway_exit:{arrive:{type:'instant',desc:'emerge beneath the Mountain Gate',success:'@merge:mountain_routes:mountain_gate',effects:{chapter:5}}},
+
+  siege_wave1:{hold:{type:'team',desc:'hold the first wave at the White City gate',memberDifficulty:7,teamSize:3,success:'siege_choice',failure:'siege_choice',dangerous:true,reason:'The first wave has several fronts: line, missiles and frightened defenders.',teamRoles:[{name:'Hold the line',skills:['Strength','Endurance']},{name:'Read the attack',skills:['Awareness','Agility']},{name:'Steady the defenders',skills:['Influence','Spirit']}],failEffects:{threat:1}}},
+  siege_choice:{
+    wall:{type:'instant',desc:'take the whole company to the western wall',success:'wall_push'},
+    people:{type:'instant',desc:'take the whole company into the lower ward',success:'lower_rescue'},
+    split:{type:'split',desc:'divide the company between the western wall and lower ward',reason:'Both crises matter, and the company can attempt them at the same time.',routes:{a:{name:'Western Wall',scene:'wall_push',text:'Climb into arrow fire, break the archer line and signal the defenders.'},b:{name:'Lower Ward',scene:'lower_rescue',text:'Enter the smoke, open the civic hall and evacuate trapped families.'}},soloScene:'wall_push'}
+  },
+  wall_push:{advance:{type:'team',desc:'advance to the western wall under arrow fire',memberDifficulty:7,teamSize:3,success:'wall_archers',failure:'wall_archers',dangerous:true,reason:'Movement, cover and awareness all matter under fire.',teamRoles:[{name:'Find cover',skills:['Awareness','Survival']},{name:'Move the line',skills:['Agility','Endurance']},{name:'Shield the advance',skills:['Strength','Spirit']}],failEffects:{threat:1}}},
+  wall_archers:{
+    fight:{type:'team',desc:'break the Order archer line',memberDifficulty:7,teamSize:3,success:'wall_breach',failure:'wall_breach',dangerous:true,reason:'The fight has multiple enemies and positions, not a single opponent.',teamRoles:[{name:'Close the distance',skills:['Agility','Endurance']},{name:'Disrupt the archers',skills:['Awareness','Strength']},{name:'Control the flank',skills:['Spirit','Craft']}],failEffects:{threat:1}},
+    sense:{type:'solo',lowStakes:true,desc:'spot the weakest point in the archer formation',difficulty:6,allowedSkills:['Awareness','Knowledge'],success:'wall_breach',failure:'wall_breach',effects:{hope:1},outcomeText:'identified the archer line’s weakest flank before the next push'}
+  },
+  wall_breach:{signal:{type:'support',desc:'light the signal brazier and hold the wall',difficulty:7,allowedSkills:['Craft','Influence'],supportSkills:['Strength','Spirit'],success:'@merge:siege_routes:lower_city',failure:'@merge:siege_routes:lower_city',effects:{flag:'saved_gate'},failEffects:{threat:1}}},
+  lower_rescue:{enter:{type:'team',desc:'push through the smoke into the lower ward',memberDifficulty:6,teamSize:3,success:'burning_lane',failure:'burning_lane',dangerous:true,reason:'The group must navigate smoke, fire and panicked crowds together.',teamRoles:[{name:'Find the route',skills:['Awareness','Survival']},{name:'Clear obstacles',skills:['Strength','Craft']},{name:'Keep people moving',skills:['Influence','Spirit']}],failEffects:{threat:1}}},
+  burning_lane:{
+    clear:{type:'support',desc:'clear the burning cart from the lane',difficulty:7,allowedSkills:['Strength','Craft'],supportSkills:['Endurance','Knowledge'],success:'civic_hall',failure:'civic_hall',dangerous:true},
+    alley:{type:'support',desc:'use the collapsing alley to reach the civic hall',difficulty:7,allowedSkills:['Agility','Awareness'],supportSkills:['Craft','Spirit'],success:'civic_hall',failure:'civic_hall',dangerous:true}
+  },
+  civic_hall:{rescue:{type:'team',desc:'open the civic hall and evacuate the trapped families',memberDifficulty:7,teamSize:3,success:'@merge:siege_routes:lower_city',failure:'@merge:siege_routes:lower_city',dangerous:true,reason:'Opening the hall, moving people and keeping the roof stable all happen at once.',teamRoles:[{name:'Open the doors',skills:['Strength','Craft']},{name:'Organise the evacuation',skills:['Influence','Spirit']},{name:'Watch the failing roof',skills:['Awareness','Knowledge']}],effects:{flag:'saved_people'},failEffects:{hope:-1}}}
+});
+
+Object.assign(actionMap,{
+  smoke_shore:{
+    wounded:{type:'instant',desc:'help the exhausted survivors onto their feet',success:'road',effects:{hope:1}},
+    salvage:{type:'solo',lowStakes:true,desc:'search the smoking wreckage one last time',difficulty:6,allowedSkills:['Awareness','Craft'],success:'road',failure:'road',effects:{supplies:1},outcomeText:'found one intact pack beneath the soaked timbers'}
+  },
+  marsh_recovery:{
+    bearings:{type:'solo',lowStakes:true,desc:'recover the road from the slope and water flow',difficulty:6,allowedSkills:['Survival','Awareness'],success:'road',failure:'road',effects:{hope:1},outcomeText:'reconstructed the road’s direction from the land itself'},
+    move:{type:'instant',desc:'keep everyone together and push back toward the road',success:'road'}
+  },
+  wolf_pursuit:{
+    turn:{type:'team',desc:'turn on the shadow-wolf pack at a defensible point',memberDifficulty:6,teamSize:3,success:'troll',failure:'troll',dangerous:true,reason:'The pack attacks from several directions at once.',teamRoles:[{name:'Hold the front',skills:['Strength','Endurance']},{name:'Read the pack',skills:['Awareness','Survival']},{name:'Break its nerve',skills:['Spirit','Influence']}],failureText:'The pack is not defeated, but the company buys just enough space to reach the ravine.'},
+    ravine:{type:'support',desc:'use the ravine noise to cover the escape',difficulty:6,allowedSkills:['Survival','Stealth'],supportSkills:['Awareness','Agility'],success:'troll',failure:'troll',failureText:'The wolves keep pace longer than expected, forcing the company to reach the ravine exhausted.'}
+  },
+  spore_sick:{
+    rest:{type:'instant',desc:'stop long enough for the spores to clear',success:'survivor_camp',effects:{hope:1}},
+    press:{type:'support',desc:'press on toward the trapped survivors while still affected',difficulty:7,allowedSkills:['Endurance','Spirit'],supportSkills:['Awareness','Knowledge'],success:'survivor_camp',failure:'survivor_camp',dangerous:true,failureText:'The company reaches the survivors, but only after several heroes stumble through the last passage half-blind.'}
+  },
+  hunters_camp:{
+    parley:{type:'support',desc:'explain why the company crossed the hunters’ ground',difficulty:6,allowedSkills:['Influence','Spirit'],supportSkills:['Knowledge','Awareness'],success:'council',failure:'council',effects:{hope:1},failureText:'The hunters remain suspicious and escort the company to Serayne as prisoners rather than guests.'},
+    observe:{type:'solo',lowStakes:true,desc:'watch the hunter camp for signs of who commands it',difficulty:6,allowedSkills:['Awareness','Knowledge'],success:'council',failure:'council',effects:{flag:'hunter_customs'},outcomeText:'noticed Serayne’s crest repeated on the hunters’ gear'}
+  },
+  canyon_floor:{
+    climb:{type:'team',desc:'climb from the canyon floor back to the old mountain road',memberDifficulty:6,teamSize:3,success:'mountain_gate',failure:'mountain_gate',dangerous:true,reason:'Loose stone, packs and pursuit make the climb a group problem.',teamRoles:[{name:'Find the line',skills:['Awareness','Survival']},{name:'Climb first',skills:['Agility','Strength']},{name:'Secure the others',skills:['Craft','Endurance']}],failureText:'The climb takes far longer than planned, but the company finally regains the mountain road under cover of darkness.'},
+    floor:{type:'instant',desc:'follow the canyon floor until it rises back toward the road',success:'mountain_gate',failEffects:{supplies:-1}}
+  },
+  hanging_platform:{
+    service:{type:'support',desc:'follow the old service passage toward the vault',difficulty:6,allowedSkills:['Knowledge','Craft'],supportSkills:['Awareness','Spirit'],success:'vault_puzzle',failure:'vault_puzzle',failureText:'The service passage loops through dead machinery before finally opening behind the vault.'},
+    climb:{type:'team',desc:'climb back toward the main crossing',memberDifficulty:7,teamSize:3,success:'vault_puzzle',failure:'vault_puzzle',dangerous:true,reason:'The company has to climb, anchor ropes and move gear at the same time.',teamRoles:[{name:'Climb',skills:['Agility','Endurance']},{name:'Anchor',skills:['Strength','Craft']},{name:'Guide',skills:['Awareness','Spirit']}],failureText:'The climb fails twice before the company finds a narrow maintenance door into the vault.'}
+  },
+  mirror_detour:{
+    marks:{type:'solo',lowStakes:true,desc:'read the warning marks in the false gallery',difficulty:6,allowedSkills:['Knowledge','Awareness'],success:'heart_chamber',failure:'heart_chamber',effects:{flag:'mirror_warning'},outcomeText:'understood that the false galleries were built to delay intruders, not trap them forever'},
+    sound:{type:'support',desc:'follow the pulse of the Heart through the false gallery',difficulty:7,allowedSkills:['Spirit','Awareness'],supportSkills:['Knowledge','Survival'],success:'heart_chamber',failure:'heart_chamber',failureText:'The pulse echoes through several false corridors before the company finally finds the real chamber.'}
+  },
+  burning_courtyard:{
+    gate:{type:'team',desc:'open the side gate and move with the trapped civilians',memberDifficulty:6,teamSize:3,success:'beacon_tower',failure:'beacon_tower',dangerous:true,reason:'The company must open the gate, organise the crowd and keep the fire back.',teamRoles:[{name:'Open the gate',skills:['Strength','Craft']},{name:'Move the crowd',skills:['Influence','Spirit']},{name:'Read the fire',skills:['Awareness','Survival']}],failureText:'The side gate finally opens, but only after smoke and panic cost the company precious time.'},
+    stairs:{type:'support',desc:'find another stair through the smoke',difficulty:7,allowedSkills:['Awareness','Agility'],supportSkills:['Survival','Craft'],success:'beacon_tower',failure:'beacon_tower',dangerous:true,failureText:'The first stair ends in flame, forcing the company through kitchens and storage rooms before reaching the tower.'}
+  }
+});
+
+// Override compressed anchor transitions with genuine routes.
+actionMap.road={east:{type:'instant',desc:'take the eastern river road',success:'east_river',effects:{flag:'route_east'}},west:{type:'instant',desc:'take the western ridge road',success:'west_ridge',effects:{flag:'route_west'}}};
+actionMap.quiet_fire={marsh:{type:'instant',desc:'take the Moon Marsh causeway',success:'marsh_route',effects:{flag:'route_marsh'}},ridge:{type:'instant',desc:'take the Old King’s Ridge',success:'ridge_route',effects:{flag:'route_ridge'}}};
+actionMap.ash_sails={cliffs:{type:'instant',desc:'take the sea-cliff road toward the Order landing',success:'cliff_route',effects:{flag:'route_cliffs'}},quarry:{type:'instant',desc:'take the abandoned quarry road inland',success:'quarry_route',effects:{flag:'route_quarry'}}};
+actionMap.escape_coast={
+  high:{type:'instant',desc:'take the High Pass together',success:'high_pass'},
+  deep:{type:'instant',desc:'take the Deep Rootway together',success:'deep_rootway'},
+  canyon:{type:'instant',desc:'risk the canyon shortcut before the Order closes it',success:'ash_canyon'},
+  split:{type:'split',desc:'divide the company between the High Pass and Deep Rootway',reason:'Two routes may reveal different approaches to the Mountain Gate.',routes:{a:{name:'High Pass',scene:'high_pass',text:'Cold, exposed travel above the valleys.'},b:{name:'Deep Rootway',scene:'deep_rootway',text:'Ancient maintenance roads beneath the forest.'}},soloScene:'high_pass'}
+};
+actionMap.siege_gate={begin:{type:'instant',desc:'meet the first wave of the White City siege',success:'siege_wave1'}};
+
+
+actionMap.watchtower_ambush={
+  line:{type:'team',desc:'break the ambush and force a path through the ruins',memberDifficulty:7,teamSize:3,success:'goblin_border',failure:'goblin_border',dangerous:true,reason:'The company must hold the line, break the archers and seize the road at the same time.',teamRoles:[{name:'Hold the line',skills:['Strength','Endurance']},{name:'Break the archers',skills:['Awareness','Agility']},{name:'Seize the satchel',skills:['Stealth','Craft','Arcana']}],effects:{item:'wayfinder_compass',flag:'ambush_won',chapter:3},failEffects:{supplies:-1},failureText:'The raiders are driven off only after a bruising retreat through the ruins, leaving the company battered and short on supplies.',dialogueSuccess:{speaker:'Captain Veyra',text:'These were no ordinary bandits. Someone placed them here with our route already marked. Take the compass — and these orders. We may need both before this journey is done.',clue:{id:'ambush_orders',title:'The ambushers were waiting for the expedition',text:'Orders recovered after the fight describe sea-people, the watchtower kill-zone and a route toward Serayne’s valleys. Someone expected the expedition to come this way.'}}},
+  archers:{type:'support',desc:'drive the high archers off the watchtower ruins',difficulty:7,allowedSkills:['Awareness','Agility'],supportSkills:['Survival','Craft'],success:'goblin_border',failure:'goblin_border',dangerous:true,reason:'One hero leads the push while another helps cut off the archers’ escape.',effects:{item:'wayfinder_compass',flag:'ambush_won',chapter:3},failEffects:{supplies:-1},failureText:'The archers fall back only after the company is forced through a crossfire and out the far side of the ruin.',dialogueSuccess:{speaker:'Captain Veyra',text:'These were no ordinary bandits. Someone placed them here with our route already marked. Take the compass — and these orders. We may need both before this journey is done.',clue:{id:'ambush_orders',title:'The ambushers were waiting for the expedition',text:'Orders recovered after the fight describe sea-people, the watchtower kill-zone and a route toward Serayne’s valleys. Someone expected the expedition to come this way.'}}},
+  leader:{type:'support',desc:'cut through to the raider leader and seize the marked satchel',difficulty:7,allowedSkills:['Stealth','Arcana'],supportSkills:['Agility','Strength'],success:'goblin_border',failure:'goblin_border',dangerous:true,reason:'One hero slips or blasts a path to the leader while another creates the opening.',effects:{item:'wayfinder_compass',flag:'ambush_won',chapter:3},failEffects:{supplies:-1},failureText:'The satchel is nearly lost in the chaos, and the company escapes the ambush with only seconds to spare.',dialogueSuccess:{speaker:'Captain Veyra',text:'These were no ordinary bandits. Someone placed them here with our route already marked. Take the compass — and these orders. We may need both before this journey is done.',clue:{id:'ambush_orders',title:'The ambushers were waiting for the expedition',text:'Orders recovered after the fight describe sea-people, the watchtower kill-zone and a route toward Serayne’s valleys. Someone expected the expedition to come this way.'}}}
+};
+if(actionMap.marsh_exit?.finish)actionMap.marsh_exit.finish.success='watchtower_ambush';
+if(actionMap.ridge_descent?.finish)actionMap.ridge_descent.finish.success='watchtower_ambush';
+if(actionMap.goblin_border?.speak)Object.assign(actionMap.goblin_border.speak,{knowledgeItem:'wayfinder_compass',knowledgeItemNote:'The stolen Wayfinder Compass keeps twitching toward the fern-hidden approach.'});
+if(actionMap.goblin_border?.bypass)Object.assign(actionMap.goblin_border.bypass,{knowledgeItem:'wayfinder_compass',knowledgeItemNote:'The stolen Wayfinder Compass points toward a screened approach the sentries are not covering.'});
+if(actionMap.council?.truth)Object.assign(actionMap.council.truth,{knowledgeFlag:'clue_ambush_orders',knowledgeNote:'The recovered orders make Serayne more willing to answer directly.'});
+
+// DIALOGUE & RELATIONSHIP PASS
+Object.assign(actionMap.intro.captain,{dialogueSuccess:{speaker:'Captain Veyra',text:'The compass has been drifting east for three days. Last night we lost two stars from the southern sky, then found them again before dawn. And Thorne has asked twice whether the beacon answered us before we saw it. I thought he was being a scholar. Now I am not so sure.',clue:{id:'captain_oddities',title:'Veyra’s strange observations',text:'Before the storm, the compass drifted, stars vanished briefly, and Elias Thorne was unusually interested in whether the beacon had “answered”.'},person:{id:'veyra',name:'Captain Veyra',note:'Captain of the Resolute; practical, protective, and increasingly suspicious of the voyage.'},relationship:{id:'veyra',name:'Captain Veyra',status:'trusting',note:'Veyra accepts the company’s warning and prepares the ship early.'}},dialogueFailure:{speaker:'Captain Veyra',text:'I have crossed worse skies than this. Secure your own gear and let my crew do theirs.',relationship:{id:'veyra',name:'Captain Veyra',status:'skeptical',note:'Veyra does not yet believe the distant light justifies changing course or routine.'}}});
+Object.assign(actionMap.survivor_camp.survivors,{dialogueSuccess:{speaker:'Mara, surviving deckhand',text:'Before the storm hit, I saw Thorne below decks with a brass frame wrapped in sailcloth. It was humming. When the first lightning struck, the thing lit up — and he looked terrified, not surprised.',clue:{id:'survivor_thorne',title:'A survivor saw Thorne’s device',text:'A rescued sailor saw Thorne carrying a humming brass device before the storm. It lit up when the lightning began.'},person:{id:'survivors',name:'The Resolute survivors',note:'Sailors and expedition members rescued from the ruins; some witnessed events the party missed.'}}});
+Object.assign(actionMap.goblin_border.speak,{dialogueSuccess:{speaker:'Goblin sentry',text:'Sea-people came before you. Black cloth. Fire sticks. They asked for the mountain road and killed a hunter who would not answer. If you go to Serayne, take the fern path. The stone road is watched.',clue:{id:'fern_path',title:'The fern path',text:'The Order has already questioned locals about the mountain. Goblin sentries reveal a safer fern path into Serayne’s territory.'},relationship:{id:'goblin_clan',name:'Goblin clans',status:'cautious allies',note:'The sentries believe the company may be different from the Order.'}},dialogueFailure:{speaker:'Goblin sentry',text:'You speak like all sea-people: many promises, no proof. Hands where we see them. You come with us.',relationship:{id:'goblin_clan',name:'Goblin clans',status:'suspicious',note:'The party is treated as prisoners rather than guests.'}}});
+Object.assign(actionMap.council.truth,{dialogueSuccess:{speaker:'Lady Serayne',text:'The old war was not fought over land. It was fought over who could command the Heart. The kings called it protection. Their enemies called it slavery. In the end they chose disappearance because neither side could trust the other with the beacons.',clue:{id:'old_war_truth',title:'What the old war was really about',text:'Aranor’s civil war centred on control of the Heart and beacon network, not territory. The island vanished because no faction could be trusted with that power.'},person:{id:'serayne',name:'Lady Serayne',note:'Leader among Aranor’s surviving people; protective of her community and deeply wary of outsiders.'},relationship:{id:'serayne',name:'Lady Serayne',status:'confiding',note:'Serayne has entrusted the company with a truth her people do not tell strangers.'}},dialogueFailure:{speaker:'Lady Serayne',text:'You have been here less than two days and already ask for the wound beneath eight centuries. Help the living first. Then ask me about the dead.',relationship:{id:'serayne',name:'Lady Serayne',status:'guarded',note:'Serayne will not trade history for curiosity while her people are in danger.'}}});
+Object.assign(actionMap.vael_parley.listen,{dialogueSuccess:{speaker:'Commander Vael',text:'I buried a son in a winter famine while kings argued over tariffs. If the Heart can light cities, move water and end a siege before it begins, hiding it is not virtue. It is a choice about who is allowed to suffer.',clue:{id:'vael_motive',title:'Why Vael wants the Heart',text:'Vael believes Aranor’s power could prevent famine and war; he sees hiding it as a moral failure, not merely a strategic obstacle.'},person:{id:'vael',name:'Commander Vael',note:'Commander of the Order of Ash. He believes dangerous power is justified if it prevents greater suffering.'},relationship:{id:'vael',name:'Commander Vael',status:'heard',note:'Vael knows the company listened rather than dismissing him as a monster.'}}});
+Object.assign(actionMap.vael_parley.challenge,{dialogueSuccess:{speaker:'Commander Vael',text:'You are right about one thing: I cannot promise the Order would surrender the Heart once we had it. Institutions learn to call possession responsibility. That is precisely why I wanted to speak before soldiers decide this for us.',clue:{id:'vael_doubt',title:'Vael doubts his own Order',text:'Vael admits he cannot guarantee the Order would ever relinquish control of the Heart.'},relationship:{id:'vael',name:'Commander Vael',status:'respectful',note:'Vael respects the company for challenging his argument rather than his motives.'}},dialogueFailure:{speaker:'Commander Vael',text:'You call my plan dangerous while standing on a miracle your people would cross an ocean to possess. We are not as different as you need me to be.',relationship:{id:'vael',name:'Commander Vael',status:'unmoved',note:'Vael sees the company’s objections as moral inconsistency.'}}});
+Object.assign(actionMap.traitor_reveal.confront,{knowledgeFlag:'thorne_suspect',knowledgeNote:'Earlier testimony makes it harder for Thorne to dismiss the accusation as guesswork.',dialogueSuccess:{speaker:'Elias Thorne',text:'Yes. I activated it. I thought it would make the beacon visible long enough to prove Aranor existed. I did not know it would pull the storm around us. By the time I understood, the Resolute was already inside the field.',clue:{id:'thorne_confession',title:'Thorne confesses',text:'Thorne deliberately activated an Aranorian device to reveal the island, unintentionally drawing the Resolute into the storm.'},person:{id:'thorne',name:'Elias Thorne',note:'Scholar of Aranor whose obsession led him to activate the device that caused the wreck.'},relationship:{id:'thorne',name:'Elias Thorne',status:'exposed',note:'Thorne has admitted responsibility for drawing the expedition into the storm.'}},dialogueFailure:{speaker:'Elias Thorne',text:'You have fragments, fear and a convenient villain. If you want to accuse me, bring proof.',relationship:{id:'thorne',name:'Elias Thorne',status:'cornered',note:'Thorne knows suspicion is closing around him and may run.'}}});
+Object.assign(actionMap.thorne_choice.question,{dialogueSuccess:{speaker:'Elias Thorne',text:'The device was not a beacon. It was a key. It matched the frequency of the island’s outer towers and asked them to open a path. The storm was the network resisting the command. If the Heart wakes fully, every beacon on Aranor will answer it.',clue:{id:'storm_device',title:'How Thorne’s device worked',text:'Thorne’s device tried to open a path through Aranor’s beacon network. The storm was the network resisting the command.'},relationship:{id:'thorne',name:'Elias Thorne',status:'cooperating',note:'Under guard, Thorne is now giving the company technical information about the network.'}},dialogueFailure:{speaker:'Elias Thorne',text:'I can explain it, but not while everyone is shouting at me. The short version is this: the storm and the beacons are the same system.',clue:{id:'storm_device_partial',title:'The storm and beacons are linked',text:'Even without a full explanation, Thorne confirms the storm was produced by the same network as the beacons.'}}});
+Object.assign(actionMap.heart_chamber.study,{dialogueSuccess:{speaker:'The Heart controls',text:'Across the chamber, six lines of light branch outward toward distant towers. Every pulse from the Heart is answered by the beacon network — concealment, weather, navigation and power are all part of one system.',clue:{id:'heart_network',title:'The Heart and beacons are one system',text:'The Heart feeds a network controlling Aranor’s beacons, weather fields, navigation barriers and hidden routes.'}}});
+Object.assign(actionMap.beacon_tower.vael,{knowledgeFlag:'clue_vael_motive',knowledgeNote:'Because you listened to Vael earlier, you can answer the fear beneath his argument instead of repeating slogans.',dialogueSuccess:{speaker:'Commander Vael',text:'If I order them back, the Order may call me traitor. So be it. Better one traitor than another empire built around a machine nobody knows how to surrender.',relationship:{id:'vael',name:'Commander Vael',status:'ally',note:'Vael orders the Order of Ash to stand down at the Last Beacon.'}},dialogueFailure:{speaker:'Commander Vael',text:'I believe you mean well. I also believe history is full of good people who hid power until worse people came for it. I cannot step aside.',relationship:{id:'vael',name:'Commander Vael',status:'opposed',note:'Vael remains committed to taking control of the Heart.'}}});
+
+Object.assign(actionMap.council.village,{dialogueSuccess:{speaker:'Lady Serayne',text:'Then you understand the first rule of surviving Aranor: power matters less than who is still alive when the argument ends. Help my people, and I will give you guides no map can replace.',relationship:{id:'serayne',name:'Lady Serayne',status:'ally',note:'Serayne believes the company will put living people ahead of relics and glory.'},decision:{id:'serayne_people',title:'You promised to protect Serayne’s people',text:'The company placed the needs of Aranor’s living communities ahead of the expedition’s immediate goals.'}}});
+Object.assign(actionMap.thorne_choice.forgive,{dialogueSuccess:{speaker:'Elias Thorne',text:'I do not deserve your trust. I know that. But if you keep me, I will spend every step from here making the knowledge useful instead of dangerous.',relationship:{id:'thorne',name:'Elias Thorne',status:'under guard',note:'Thorne remains with the expedition and has been given a chance to repair some of the harm he caused.'},decision:{id:'kept_thorne',title:'Thorne stayed with the company',text:'The party kept Thorne under guard because his knowledge may still save lives.'}}});
+Object.assign(actionMap.thorne_choice.banish,{dialogueSuccess:{speaker:'Elias Thorne',text:'Then I hope you are right to send me away. And I hope I am wrong about what waits beneath the mountain.',relationship:{id:'thorne',name:'Elias Thorne',status:'banished',note:'Thorne was sent away after admitting his role in the wreck.'},decision:{id:'banished_thorne',title:'Thorne was banished',text:'The company chose accountability over keeping his expertise close.'}}});
+Object.assign(actionMap.allies_arrive.rally,{dialogueSuccess:{speaker:'Captain Veyra',text:'Look behind you. Goblins, city guards, sailors, people who would never have shared a road a week ago. They are not here because of a prophecy. They are here because they remember what you did.',decision:{id:'allies_rallied',title:'The company called in its relationships',text:'Earlier rescues, promises and acts of trust returned as real allies on the final road.'}}});
+
+
+// --- V5.2 quality pass: slower opening and deliberate rest beats ---
+Object.assign(actionMap,{deck_pause:{veyra:{type:'instant',desc:'ask Veyra what worries her most',success:'storm',dialogueSuccess:{speaker:'Captain Veyra',text:'The compass is not what worries me. Compasses fail. The sea is what worries me. It has gone still in a way I have only seen before violent weather — except there is no pressure drop and the clouds are moving against the wind.',clue:{id:'veyra_weather',title:'Veyra distrusts the still sea',text:'Veyra believes the weather around Aranor is behaving unnaturally, not merely badly.'},person:{id:'veyra',name:'Captain Veyra',note:'Captain of the Resolute; practical, observant and deeply suspicious of the unnatural calm.'}}},thorne:{type:'instant',desc:'ask Thorne what he thinks the light is',success:'storm',dialogueSuccess:{speaker:'Elias Thorne',text:'A beacon. Or something built to behave like one. The old accounts describe towers that answered ships before land could be seen. If that is true, then Aranor has not merely survived. Something there is awake.',clue:{id:'thorne_beacon_early',title:'Thorne recognises the light',text:'Before the storm, Thorne identifies the golden light as something like an Aranorian beacon.'},person:{id:'thorne',name:'Elias Thorne',note:'The expedition historian seems to recognise the light more readily than he should.'}}},company:{type:'instant',desc:'stay with the company and study the horizon',success:'storm',effects:{hope:1},dialogueSuccess:{speaker:'Captain Veyra',text:'Stay close to one another. If the deck goes dark, do not assume the person shouting your name is where the voice seems to be.',clue:{id:'veyra_warning',title:'Veyra’s strange warning',text:'Before the storm, Veyra warns the company that sound and direction may become unreliable.'}}}}, shore_rest:{rest:{type:'instant',desc:'eat, dry equipment and rest for an hour',success:'road',effects:{supplies:-1,hope:1,refreshInterventions:true}},gear:{type:'solo',lowStakes:true,desc:'repair damaged packs before leaving the shore',difficulty:6,allowedSkills:['Craft','Knowledge'],success:'road',failure:'road',effects:{supplies:1},outcomeText:'repaired enough damaged equipment to recover one useful pack'},move:{type:'instant',desc:'leave the shore before darkness settles',success:'road'}},});
+Object.assign(actionMap.intro.light,{outcomeText:'identify the golden light as a repeating signal rather than a star',failureText:'The light remains impossible to classify, but its rhythm is too regular to ignore.'});
+Object.assign(actionMap.intro.captain,{outcomeText:'convince Veyra to put the Resolute on storm footing before the weather changes',failureText:'Veyra is not convinced by the warning, but she keeps the deck watch doubled anyway.'});
+Object.assign(actionMap.intro.inspect,{outcomeText:'find strain in the Resolute’s rigging before the first gust arrives',failureText:'The inspection finds nothing definite; whatever is wrong is not normal wear.'});
+Object.assign(actionMap.wave.face,{outcomeText:'keep the Resolute together through the great wave long enough to save lives',failureText:'The wave overwhelms the deck plan and drives the company into a desperate survival route below the cliffs.'});
+Object.assign(actionMap.troll.calm,{outcomeText:'lower the troll’s panic long enough to reach the trapped child without a fight'});
+Object.assign(actionMap.troll.rescue,{outcomeText:'coordinate the distraction, rescue and escape until the goblin child is safely free'});
+Object.assign(actionMap.siege_gate.begin,{outcomeText:'meet the first Order assault at the White City gate and hold long enough for the company to establish a defence'});
+Object.assign(actionMap.final_stand.protect,{outcomeText:'hold the upper chamber long enough for the beacon controls to wake'});
+for(const k of ['light','captain','inspect']){if(actionMap.intro?.[k]){actionMap.intro[k].success='deck_pause';actionMap.intro[k].failure='deck_pause';}}
+if(actionMap.wreck?.search)actionMap.wreck.search.success='shore_rest';
+
+
+
+
+Object.assign(contextualClues,{
+  shore_camp:{Sailor:'The wreck settled above the highest tide line by less than a foot. Another storm will take what remains of the Resolute.',Engineer:'Several lengths of Aranorian-looking metal are mixed through the wreckage, but none belong to the ship.',Monk:'Veyra is grieving the Resolute as if it were a person and refusing to let anyone see it.'},
+  serayne_hub:{Noble:'Serayne’s authority is persuasive rather than absolute; every elder on the terrace can disagree with her in public.',Artisan:'The local smith has learned to work old Aranorian metal by heating the new steel around it rather than trying to melt the ancient alloy.',Streetwise:'Three different people quietly ask whether the company intends to leave Aranor once the crisis is over. They are testing more than curiosity.'},
+  white_city_camp:{Knight:'The Order’s siege line is built to capture the beacon intact, not destroy the city. That limits where Vael’s commanders can use heavy force.',Ranger:'Old drainage terraces give civilians a route out of the lower ward if someone can hold the eastern lane.',Engineer:'The Last Beacon is already shedding load into side towers. The failure is distributed, which means the final repair probably will be too.'},
+  beacon_keeper:{Engineer:'The grounding harness has release catches on both sides. It was designed for handoff.',Scholar:'The verb in the final inscription means “keep in succession,” not “remain forever.”',Monk:'The system is asking for continuity, but the fear in the room is making everyone hear sacrifice.'}
+});
+
+// --- DEFINITIVE EDITION: hubs, equipment progression, deeper character arcs and finale ---
+Object.assign(actionMap,{
+  shore_camp:{
+    veyra:{type:'instant',desc:'sit with Captain Veyra and ask what she thinks really happened to the Resolute',success:'shore_camp',effects:{flag:'shore_veyra'},dialogueSuccess:{speaker:'Captain Veyra',text:'A storm is weather. That was choreography. The compass swung before the wind. The wave arrived after something struck us from below. And Thorne looked frightened before anyone else knew there was danger. I do not know whether he caused it. I know he expected something.',clue:{id:'veyra_expected_pattern',title:'Veyra believes the wreck was engineered',text:'The sequence of compass drift, hull impact and impossible wave looked coordinated rather than natural.'},relationship:{id:'veyra',name:'Captain Veyra',status:'bonded',note:'At the first shore camp, Veyra stops treating the company as passengers and begins treating them as people she may have to trust with lives.'}}},
+    thorne:{type:'instant',desc:'ask Elias Thorne why finding Aranor mattered enough to risk the voyage',success:'shore_camp',effects:{flag:'shore_thorne'},dialogueSuccess:{speaker:'Elias Thorne',text:'My father spent thirty years proving Aranor existed and died with respectable men calling him a fraud. I told myself this expedition was about history. It is not. I wanted one impossible thing to be true because he believed it first. That is the part I did not put in the proposal.',clue:{id:'thorne_personal_motive',title:'Thorne came for more than scholarship',text:'Thorne’s obsession with Aranor began with his father’s ruined reputation, making his judgement personal long before the voyage.'},person:{id:'thorne',name:'Elias Thorne',note:'Historian, brilliant and increasingly difficult to separate from the mystery he spent his life pursuing.'}}},
+    service:{type:'instant',desc:'service your class gear at the survivors’ salvage bench',success:'shore_camp',requiresCoin:2,effects:{coin:-2,gearUpgrade:'service'}},
+    repair:{type:'instant',desc:'repair damaged equipment with salvaged fittings',success:'shore_camp',requiresCoin:2,requiresGearDamaged:true,effects:{coin:-2,gearUpgrade:'repair'}},
+    depart:{type:'instant',desc:'leave the wreck coast and follow the ancient road inland',success:'road',effects:{flag:'shore_departed'}}
+  },
+  serayne_hub:{
+    serayne:{type:'instant',desc:'walk the terraces with Serayne and ask what the old war cost her people',success:'serayne_hub',effects:{flag:'serayne_bond'},dialogueSuccess:{speaker:'Lady Serayne',text:'My grandmother taught me the names of six valleys we were forbidden to enter because the machines beneath them still remembered the war. She called that peace. I called it fear. Then I became responsible for children of my own, and the difference stopped being simple.',clue:{id:'serayne_cost',title:'Serayne inherited a peace built on fear',text:'Serayne’s people survived by treating much of Aranor as forbidden ground after the old war.'},relationship:{id:'serayne',name:'Lady Serayne',status:'trusted',note:'Serayne allows the company to see the burden behind her public certainty.'}}},
+    smith_service:{type:'instant',desc:'have the settlement smith sharpen, tune and service your equipment',success:'serayne_hub',requiresCoin:2,effects:{coin:-2,gearUpgrade:'service'}},
+    smith_attack:{type:'instant',desc:'pay the settlement smith to reforge your gear for offence',success:'serayne_hub',requiresCoin:5,effects:{coin:-5,gearUpgrade:'attack'}},
+    smith_defense:{type:'instant',desc:'reinforce your gear for survival and defence',success:'serayne_hub',requiresCoin:5,effects:{coin:-5,gearUpgrade:'defense'}},
+    smith_repair:{type:'instant',desc:'repair damaged equipment before leaving the settlement',success:'serayne_hub',requiresCoin:2,requiresGearDamaged:true,effects:{coin:-2,gearUpgrade:'repair'}},
+    stories:{type:'instant',desc:'spend an evening listening to the settlement’s oldest stories of the beacons',success:'serayne_hub',effects:{flag:'keeper_stories'},dialogueSuccess:{speaker:'Old Merin',text:'The keepers were never kings. That is the mistake outsiders make. They handed the stations from one set of hands to another at dawn and dusk. A keeper who would not surrender the station was considered dangerous.',clue:{id:'keeper_rotation',title:'Beacon keepers once rotated their duty',text:'Oral tradition remembers beacon keepers transferring stations rather than being permanently bound to them.'}}},
+    depart:{type:'instant',desc:'leave Serayne’s settlement for the broken keep',success:'broken_keep',effects:{flag:'serayne_hub_done',chapter:4}}
+  },
+  white_city_camp:{
+    veyra:{type:'instant',desc:'speak privately with Veyra before the siege begins',success:'white_city_camp',effects:{flag:'veyra_final_words'},dialogueSuccess:{speaker:'Captain Veyra',text:'When this started, I thought command meant making the decision nobody else could make. I was wrong. It means making sure the people beside you still have choices when the moment comes. Whatever happens in that tower, do not let the machine choose for you.',relationship:{id:'veyra',name:'Captain Veyra',status:'devoted',note:'Before the White City battle, Veyra makes it clear she will stand with the company whatever the final choice costs.'}}},
+    bind:{type:'instant',desc:'have the city smith bind Aranorian alloy into your equipment',success:'white_city_camp',requiresCoin:4,requiresItem:'aranorian_alloy',requiresNoBinding:true,effects:{coin:-4,consume:'aranorian_alloy',gearUpgrade:'aranorian'}},
+    repair:{type:'instant',desc:'repair damaged gear before the siege',success:'white_city_camp',requiresCoin:2,requiresGearDamaged:true,effects:{coin:-2,gearUpgrade:'repair'}},
+    plan:{type:'instant',desc:'review the city approaches with every ally who answered the call',success:'white_city_camp',effects:{flag:'siege_plan',hope:1}},
+    begin:{type:'instant',desc:'walk with the defenders to the White City gate',success:'siege_gate'}
+  },
+  beacon_keeper:{
+    understand:{type:'instant',desc:'use everything learned about the network to transfer the keeper load safely',success:'dawn',requiresFlag:'beacon_handoff_solution',effects:{finalChoice:'everyone_lives',flag:'clean_finale'},dialogueSuccess:{speaker:'Elias Thorne',text:'There. The old stories were literal. It is not asking for a life — it is asking for continuity. Hand the load from station to station. Do not let the line break.',decision:{id:'all_survive',title:'The company rewrote the final handoff',text:'Earlier clues revealed that the Last Beacon required continuity of control, not a permanent sacrifice. The company transferred the burden and walked out together.'}}},
+    hero:{type:'instant',desc:'remain at the grounding dais so everyone else can leave',success:'dawn',effects:{finalChoice:'hero_sacrifice',sacrificeActive:true,sacrificeReason:'last_beacon',flag:'beacon_held'}},
+    pass:{type:'instant',desc:'refuse to choose for anyone else and let the next hero answer',success:'beacon_keeper'},
+    veyra:{type:'instant',desc:'accept Captain Veyra’s offer to hold the grounding line',success:'dawn',effects:{finalChoice:'veyra_sacrifice',flag:'veyra_sacrificed'}},
+    vael:{type:'instant',desc:'allow Commander Vael to remain behind and make restitution',success:'dawn',requiresFlag:'vael_stood_down',effects:{finalChoice:'vael_sacrifice',flag:'vael_sacrificed'}},
+    refuse:{type:'instant',desc:'refuse the sacrifice and force the company’s chosen configuration through unstable controls',success:'dawn',effects:{finalChoice:'scarred_choice',flag:'scarred_finale',threat:1}},
+    sever:{type:'instant',desc:'destroy the grounding circuit and end the beacon network rather than leave anyone behind',success:'dawn',effects:{finalChoice:'network_destroyed',flag:'network_destroyed'}}
+  }
+});
+
+// Route history should be visible later, not just structural.
+Object.assign(actionMap.road.east.effects||={}, {flag:'route_east'});Object.assign(actionMap.road.west.effects||={}, {flag:'route_west'});
+Object.assign(actionMap.quiet_fire.marsh.effects||={}, {flag:'route_marsh'});Object.assign(actionMap.quiet_fire.ridge.effects||={}, {flag:'route_ridge'});
+Object.assign(actionMap.ash_sails.cliffs.effects||={}, {flag:'route_cliffs'});Object.assign(actionMap.ash_sails.quarry.effects||={}, {flag:'route_quarry'});
+
+// Early and mid-campaign pacing: real hubs between major movements.
+for(const a of ['search','tracks','cliffs'])if(actionMap.wreck?.[a]?.success==='road')actionMap.wreck[a].success='shore_camp';
+if(actionMap.wreck_fire?.rescue?.success==='road')actionMap.wreck_fire.rescue.success='shore_camp';
+for(const a of ['wounded','salvage'])if(actionMap.smoke_shore?.[a]?.success==='road')actionMap.smoke_shore[a].success='shore_camp';
+if(actionMap.marsh_recovery?.bearings?.success==='road')actionMap.marsh_recovery.bearings.success='shore_camp';if(actionMap.marsh_recovery?.move?.success==='road')actionMap.marsh_recovery.move.success='shore_camp';if(actionMap.lost_marsh?.high?.success==='road')actionMap.lost_marsh.high.success='shore_camp';if(actionMap.marsh_lights?.resist?.success==='road')actionMap.marsh_lights.resist.success='shore_camp';
+for(const a of ['give','trade','search'])if(actionMap.medicine_choice?.[a]){actionMap.medicine_choice[a].success='serayne_hub';}
+if(actionMap.marsh_night?.shelter){actionMap.marsh_night.shelter.success='serayne_hub';actionMap.marsh_night.shelter.failure='serayne_hub';}
+if(actionMap.allies_arrive?.rally)actionMap.allies_arrive.rally.success='white_city_camp';if(actionMap.allies_arrive?.rush)actionMap.allies_arrive.rush.success='white_city_camp';
+if(actionMap.final_cost?.commit){actionMap.final_cost.commit.success='beacon_keeper';actionMap.final_cost.commit.failure='beacon_keeper';}
+
+// Stronger callbacks and earned solutions.
+Object.assign(actionMap.heart_chamber.study,{effects:{...(actionMap.heart_chamber.study.effects||{}),flag:'heart_understood'},dialogueSuccess:{speaker:'Elias Thorne',text:'It is not a battery. It is a regulator. Every beacon we passed is a valve in the same system, bleeding force away from the Heart and bending the routes around Aranor. The island vanished because somebody turned the whole network inward.',clue:{id:'heart_network',title:'The Heart and beacons are one control network',text:'The Heart feeds a distributed beacon system that regulates power and the hidden routes around Aranor.'}}});
+Object.assign(actionMap.troll.calm,{dialogueSuccess:{speaker:'Nim',text:'Not monster. Hurt. Bridge hurts him when gold-light wakes.',person:{id:'nim',name:'Nim',note:'A young goblin survivor whose knowledge of Aranor comes from lived warnings rather than old books.'},relationship:{id:'nim',name:'Nim',status:'friend',note:'Nim remembers that the company chose understanding over violence at the bridge.'}}});
+Object.assign(actionMap.troll.rescue,{dialogueSuccess:{speaker:'Nim',text:'You came back. Big people usually run when the bridge wakes. You came back.',person:{id:'nim',name:'Nim',note:'A young goblin survivor who now treats the company as people worth following.'},relationship:{id:'nim',name:'Nim',status:'friend',note:'Nim was rescued at the Bridge of Roots and becomes fiercely loyal to the company.'}}});
+Object.assign(actionMap.beacon_tower.vael,{effects:{...(actionMap.beacon_tower.vael.effects||{}),ally:'vael',flag:'vael_stood_down'}});
+
+
+// V13: narrative-first opening. Each choice advances a beat, not an entire chapter.
+Object.assign(actionMap,{
+ after_storm:{crew:{type:'support',desc:'account for the missing crew',difficulty:6,recommended:'Spirit',success:'wave',failure:'wave',effects:{hope:1},reason:'Someone leads the search while another helps the survivors.'},device:{type:'solo',desc:'question Thorne about the hidden instrument',difficulty:7,recommended:'Knowledge',success:'wave',failure:'wave',effects:{flag:'thorne_early_clue'},reason:'A careful conversation may reveal a discrepancy in his story.'},rigging:{type:'support',desc:'prepare lifelines for the coming wave',difficulty:6,recommended:'Craft',success:'wave',failure:'wave',effects:{supplies:1},reason:'Practical preparation gives the company more options.'}},
+ beach_triage:{survivors:{type:'support',desc:'care for the survivors and hear their accounts',difficulty:6,recommended:'Spirit',success:'shore_rest',failure:'shore_rest',effects:{hope:1,flag:'survivors_first'}},trunk:{type:'solo',desc:'inspect Thorne’s instrument trunk',difficulty:7,recommended:'Knowledge',success:'shore_rest',failure:'shore_rest',effects:{flag:'thorne_early_clue'}},tracks:{type:'solo',desc:'study the unfamiliar footprints',difficulty:6,recommended:'Survival',success:'shore_rest',failure:'shore_rest',effects:{flag:'nim_tracks'}}},
+ camp_council:{people:{type:'instant',desc:'commit to protecting the survivors',success:'road',effects:{flag:'survivors_first',hope:1}},truth:{type:'instant',desc:'ask for the truth about the strange beacon',success:'road',effects:{flag:'thorne_early_clue'}},march:{type:'instant',desc:'prepare to move inland at first light',success:'road',effects:{supplies:1}}},
+ road_echo:{inscriptions:{type:'solo',desc:'read the damaged road memorials',difficulty:6,recommended:'Knowledge',success:'bridge_approach',failure:'bridge_approach',effects:{relics:1}},sling:{type:'solo',desc:'read the tracks around the child’s sling',difficulty:6,recommended:'Survival',success:'bridge_approach',failure:'bridge_approach',effects:{flag:'nim_tracks'}},scout:{type:'support',desc:'scout the crossing without disturbing it',difficulty:6,recommended:'Awareness',success:'bridge_approach',failure:'bridge_approach',effects:{flag:'bridge_scouted'}}},
+ bridge_approach:{wound:{type:'solo',desc:'identify what caused the creature’s wound',difficulty:6,recommended:'Awareness',success:'bridge_parley',failure:'bridge_parley',effects:{flag:'troll_wound'}},span:{type:'support',desc:'assess the living bridge and plan a crossing',difficulty:6,recommended:'Craft',success:'bridge_parley',failure:'bridge_parley',effects:{flag:'bridge_scouted'}},call:{type:'support',desc:'call to the creature without making a threat',difficulty:6,recommended:'Influence',success:'bridge_parley',failure:'bridge_parley',effects:{flag:'troll_wound'}}},
+ bridge_parley:{understand:{type:'support',desc:'calm the troll enough to understand its fear',difficulty:6,recommended:'Spirit',success:'troll',failure:'troll',effects:{flag:'troll_wound'}},protect:{type:'team',desc:'prepare a safe rescue route for the child',memberDifficulty:6,need:2,teamSize:3,success:'troll',failure:'troll',effects:{flag:'bridge_scouted'}},force:{type:'support',desc:'create a defensive position without attacking',difficulty:6,recommended:'Strength',success:'troll',failure:'troll',effects:{flag:'bridge_scouted'}}},
+ bridge_aftermath:{nim:{type:'instant',desc:'hear what Nim knows about the bridge',success:'green_gate',effects:{flag:'nim_story'}},camp:{type:'instant',desc:'tend wounds and catch your breath',success:'green_gate',effects:{supplies:-1,hope:1}},ruins:{type:'instant',desc:'follow the ancient road toward the green gate',success:'green_gate'}}
+});
+// Make existing transitions pass through narrative beats, preserving failure detours.
+for(const x of Object.values(actionMap.intro||{})){if(x.success==='storm')x.success='deck_pause';if(x.failure==='storm')x.failure='deck_pause';}
+for(const x of Object.values(actionMap.deck_pause||{})){if(x.success==='storm')x.success='storm';}
+for(const x of Object.values(actionMap.storm||{})){if(x.success==='wave')x.success='after_storm';if(x.failure==='wave')x.failure='after_storm';}
+for(const x of Object.values(actionMap.wreck||{})){if(x.success==='road')x.success='beach_triage';}
+for(const x of Object.values(actionMap.shore_rest||{})){if(x.success==='road')x.success='camp_council';if(x.failure==='road')x.failure='camp_council';}
+for(const x of Object.values(actionMap.road||{})){if(x.success==='troll')x.success='road_echo';if(x.failure==='troll')x.failure='road_echo';}
+for(const x of Object.values(actionMap.troll||{})){if(x.success==='green_gate')x.success='bridge_aftermath';}
+
+// V13 route safety: alternative coastal and ridge paths rejoin the deeper beats.
+for(const name of ['wreck_fire','smoke_shore','lost_marsh','marsh_lights','marsh_recovery','sea_caves']){
+ for(const cfg of Object.values(actionMap[name]||{})){
+  if(cfg.success==='road')cfg.success='beach_triage';
+  if(cfg.failure==='road')cfg.failure='beach_triage';
+ }
+}
+for(const cfg of Object.values(actionMap.shore_camp||{}))if(cfg.success==='road')cfg.success='camp_council';
+for(const name of ['wolf_ring','wolf_pursuit','stone_ford','west_descent']){
+ for(const cfg of Object.values(actionMap[name]||{})){
+  if(cfg.success==='troll')cfg.success='road_echo';
+  if(cfg.failure==='troll')cfg.failure='road_echo';
+ }
+}
+
+io.on('connection', socket => {
+  socket.on('createRoom', ({name,cls,background,portrait}) => {name=cleanName(name);if(!name||!classes.includes(cls))return socket.emit('errorMsg','Enter a hero name and class.');const room=newRoom(null);const p=newPlayer(socket,name,cls,room,background,portrait);room.hostId=p.id;room.players.push(p);rooms.set(room.code,room);attachSocket(room,p,socket);sendJoined(socket,room,p);emitRoom(room);});
+  socket.on('joinRoom', ({roomCode:code,name,cls,background,portrait}) => {const c=String(code||'').toUpperCase().trim(),room=rooms.get(c);if(!room)return socket.emit('errorMsg','Room not found. Check the code and try again.');if(room.phase!=='lobby')return socket.emit('errorMsg','That expedition has already begun. Returning player? Use “Return to Existing Adventure” with your room code and 4-digit Return PIN.');if(room.players.length>=6)return socket.emit('errorMsg','That room already has six players.');name=cleanName(name);if(!name||!classes.includes(cls))return socket.emit('errorMsg','Enter a hero name and class.');const p=newPlayer(socket,name,cls,room,background,portrait);room.players.push(p);attachSocket(room,p,socket);sendJoined(socket,room,p);emitRoom(room);});
+  socket.on('returnToRoom', ({roomCode:code,returnPin}) => {const c=String(code||'').toUpperCase().trim(),room=rooms.get(c);if(!room)return socket.emit('errorMsg','That adventure is not active yet. Ask the host to restore it first.');const pin=String(returnPin||'').replace(/\D/g,'').slice(0,4);const p=room.players.find(x=>x.returnPin===pin);if(!p)return socket.emit('errorMsg','Return PIN not recognised for that room.');attachSocket(room,p,socket);sendJoined(socket,room,p,'resumed');emitRoom(room);const g=groupForPlayer(room,p);if(room.phase==='playing'&&g)emitContextClues(room,g.scene,g.playerIds);});
+  socket.on('leaveRoomView',()=>{const room=rooms.get(socket.data.roomCode),p=room&&socketPlayer(room,socket);if(p){p.connected=false;p.voiceJoined=false;p.voiceMuted=false;p.voiceSpeaking=false;p.socketId=null;socket.leave(room.code);addLog(room,`${p.name} stepped away from the table.`);emitRoom(room);}socket.data.roomCode=null;socket.data.playerId=null;socket.emit('leftRoomView');});
+  socket.on('resumeRoom',({roomCode:code,resumeToken})=>{const c=String(code||'').toUpperCase().trim(),room=rooms.get(c);if(!room)return socket.emit('resumeFailed',{reason:'room_missing'});const p=room.players.find(x=>x.resumeToken===resumeToken);if(!p)return socket.emit('resumeFailed',{reason:'player_missing'});attachSocket(room,p,socket);sendJoined(socket,room,p,'resumed');emitRoom(room);const g=groupForPlayer(room,p);if(room.phase==='playing'&&g)emitContextClues(room,g.scene,g.playerIds);});
+  socket.on('restoreCampaign',({saveToken,resumeToken,asHost})=>{const data=decodeSave(saveToken);if(!data)return socket.emit('errorMsg','That campaign save could not be read.');const pData=resumeToken?data.players.find(p=>p.resumeToken===resumeToken):(asHost?data.players.find(p=>p.id===data.hostId):null);if(!pData)return socket.emit('errorMsg','That saved campaign could not identify your hero.');if(rooms.has(data.code)){const existing=rooms.get(data.code),p=existing.players.find(x=>x.id===pData.id);if(!p)return socket.emit('errorMsg','A room with that code is already active.');attachSocket(existing,p,socket);sendJoined(socket,existing,p,'resumed');emitRoom(existing);return;}const room=migrateRoom({...data,players:data.players.map(p=>({...p,socketId:null,connected:false})),log:Array.isArray(data.log)?data.log:[]});for(const rp of room.players)if(!rp.returnPin)rp.returnPin=makeReturnPin(room);if(!room.players.some(p=>p.id===room.hostId))room.hostId=pData.id;const p=room.players.find(x=>x.id===pData.id);attachSocket(room,p,socket);rooms.set(room.code,room);addLog(room,`Campaign restored at ${primaryScene(room)}.`);sendJoined(socket,room,p,'resumed');emitRoom(room);const g=groupForPlayer(room,p);if(room.phase==='playing'&&g)emitContextClues(room,g.scene,g.playerIds);});
+  socket.on('requestCampaignSave',()=>{const room=rooms.get(socket.data.roomCode);if(!room||room.hostId!==socket.data.playerId)return;emitCampaignSave(room);});
+
+// Arcana uses the normal dice system and is usable by non-Mages for knowledge.
+for (const [scene, key, choices] of [
+ ['road_echo','inscriptions',['Knowledge','Arcana']],
+ ['green_gate','gate',['Craft','Arcana']],
+ ['echo_chamber','answer',['Spirit','Arcana']],
+ ['mountain_gate','bypass',['Craft','Arcana']],
+ ['heart_chamber','study',['Knowledge','Arcana']]
+]) if(actionMap[scene]?.[key]) actionMap[scene][key].allowedSkills=choices;
+
+  socket.on('setCharacter',({stats})=>{const room=rooms.get(socket.data.roomCode);if(!room||room.phase!=='lobby')return;const p=socketPlayer(room,socket);if(!p)return;const normalized=emptyStats();for(const s of skills)normalized[s]=Number(stats?.[s]||0);if(!validStats(normalized))return socket.emit('errorMsg','Allocate exactly 20 points, with no skill above 5.');p.stats=normalized;p.ready=true;emitRoom(room);});
+  socket.on('allocateSkillPoint',({skill})=>{const room=rooms.get(socket.data.roomCode);const p=room&&socketPlayer(room,socket);if(!room||!p||!skills.includes(skill))return;if((p.skillPoints||0)<1)return socket.emit('errorMsg','You do not have an unspent Skill Point.');if((p.stats[skill]||0)>=7)return socket.emit('errorMsg','That skill has reached the campaign maximum of 7.');p.stats[skill]++;p.skillPoints--;addLog(room,`${p.name} improved ${skill} to ${p.stats[skill]}.`);emitRoom(room);});
+  socket.on('channelPower',()=>{const room=rooms.get(socket.data.roomCode),p=room&&socketPlayer(room,socket);if(!room||room.phase!=='playing'||!p||!['Mage','Monk'].includes(p.cls))return;
+    if((p.milestone||0)<1)return socket.emit('errorMsg','Your power unlocks at the first expedition milestone.');
+    if((p.energy||0)<1||p.empowered)return socket.emit('errorMsg','No unused power is available.');
+    if(!activeGroup(room)?.pending)return socket.emit('errorMsg','Use this power during a challenge.');
+    p.energy-=1;p.empowered=true;addLog(room,`${p.name} channels ${p.cls==='Mage'?'Mana':'Focus'} for the next relevant check.`);emitRoom(room);
+  });
+  socket.on('chooseTalent',({talent})=>{const room=rooms.get(socket.data.roomCode);const p=room&&socketPlayer(room,socket);if(!room||!p||p.talent)return;const choices=talents[p.cls]||{};if(!choices[talent])return socket.emit('errorMsg','That talent is not available to your class.');if((p.milestone||0)<2&&!Object.values(p.stats||{}).some(v=>v>=6))return socket.emit('errorMsg','Reach the second expedition milestone or attain 6 in a skill.');p.talent=talent;addLog(room,`${p.name} unlocked the ${talent} talent.`);io.to(p.socketId||'').emit('talentEarned',{talent,desc:choices[talent].desc});emitRoom(room);});
+  socket.on('voiceJoin',()=>{const room=rooms.get(socket.data.roomCode),p=room&&socketPlayer(room,socket);if(!room||!p)return;p.voiceJoined=true;p.voiceMuted=false;p.voiceSpeaking=false;emitRoom(room);socket.to(room.code).emit('voicePeerJoined',{playerId:p.id,name:p.name});});
+  socket.on('voiceLeave',()=>{const room=rooms.get(socket.data.roomCode),p=room&&socketPlayer(room,socket);if(!room||!p)return;p.voiceJoined=false;p.voiceMuted=false;p.voiceSpeaking=false;socket.to(room.code).emit('voicePeerLeft',{playerId:p.id});emitRoom(room);});
+  socket.on('voiceSetMuted',({muted})=>{const room=rooms.get(socket.data.roomCode),p=room&&socketPlayer(room,socket);if(!room||!p||!p.voiceJoined)return;p.voiceMuted=!!muted;if(p.voiceMuted)p.voiceSpeaking=false;socket.to(room.code).emit('voiceMuted',{playerId:p.id,muted:p.voiceMuted});emitRoom(room);});
+  socket.on('voiceSpeaking',({speaking})=>{const room=rooms.get(socket.data.roomCode),p=room&&socketPlayer(room,socket);if(!room||!p||!p.voiceJoined)return;const v=!!speaking;if(p.voiceSpeaking===v)return;p.voiceSpeaking=v;socket.to(room.code).emit('voiceSpeaking',{playerId:p.id,speaking:v});});
+  socket.on('voiceSignal',({targetPlayerId,description,candidate})=>{const room=rooms.get(socket.data.roomCode),p=room&&socketPlayer(room,socket);if(!room||!p||!p.voiceJoined)return;const target=getPlayer(room,targetPlayerId);if(!target?.socketId||!target.voiceJoined)return;io.to(target.socketId).emit('voiceSignal',{fromPlayerId:p.id,description:description||null,candidate:candidate||null});});
+  socket.on('startGame',()=>{const room=rooms.get(socket.data.roomCode);if(!hostOnly(room,socket))return;if(!room.players.length||!room.players.every(p=>p.ready))return socket.emit('errorMsg','Every player must lock their character first.');room.phase='playing';room.chapter=1;room.activeIndex=0;initMainGroup(room,'intro');addLog(room,'The adventure begins.');emitRoom(room);emitContextClues(room,'intro',room.players.map(p=>p.id));});
+  socket.on('useHealingDraught',({playerId})=>{const room=rooms.get(socket.data.roomCode);if(!room||!hasItem(room,'healing_draught'))return;const active=activePlayer(room);if(!active||active.id!==socket.data.playerId)return socket.emit('errorMsg','Use items on your turn.');const target=getPlayer(room,playerId)||active;if(target.wounds<=0)return socket.emit('errorMsg','That hero has no wound to heal.');target.wounds--;consumeItem(room,'healing_draught');const g=activeGroup(room);if(g)g.lastRoll={type:'item',name:'Healing Draught',text:`${target.name} removes one wound.`};emitRoom(room);});
+  socket.on('hostSkipTurn',()=>{const room=rooms.get(socket.data.roomCode);if(!hostOnly(room,socket)||room.phase!=='playing')return;const g=activeGroup(room);if(g){g.pending=null;g.lastRoll=null;}nextTurn(room);emitRoom(room);});
+  socket.on('hostResetChallenge',()=>{const room=rooms.get(socket.data.roomCode);if(!hostOnly(room,socket)||room.phase!=='playing')return;const g=activeGroup(room);if(g){g.pending=null;g.lastRoll=null;}emitRoom(room);});
+  socket.on('hostRemovePlayer',({playerId})=>{const room=rooms.get(socket.data.roomCode);if(!hostOnly(room,socket))return;removeDisconnected(room,playerId);emitRoom(room);});
+
+
+// V17 — Mage-exclusive creative magic. The active Mage spends Mana to change the
+// actual story route without requiring a routine bonus roll. Other classes may
+// improve Arcana for investigations, but cannot use these spells.
+const arcaneActions = {
+  green_gate:{spell_gate:{type:'instant',desc:'weave the ancient ward into a doorway',success:'survivor_camp',mageSpellCost:1,effects:{flag:'arcane_gate_opened',hope:1}}},
+  echo_chamber:{spell_echo:{type:'instant',desc:'quiet the voices and hold the sealing doors with magic',success:'quiet_fire',mageSpellCost:1,effects:{flag:'arcane_voices_stilled',hope:1}}},
+  mountain_gate:{spell_seal:{type:'instant',desc:'read the sleeping runes and gently open the sealed road',success:'vault_puzzle',mageSpellCost:2,effects:{flag:'arcane_seal_opened',hope:1}}}
+};
+for (const [scene, actions] of Object.entries(arcaneActions)) Object.assign(actionMap[scene],actions);
+
+// Balanced alternatives: equivalent one-use story shortcuts for other classes.
+// Each action reaches a scene available through ordinary play. Specialisation changes
+// the route/description, not the ending. Non-Mages roll at Hard (7) for a Hope
+// reward, while Mages spend scarce Mana for a guaranteed magical route.
+const classMoments={
+  green_gate:{
+    knight_path:{heroClass:'Knight',desc:'shield the company while the ancient gate shifts',success:'survivor_camp',effects:{flag:'knight_gate_guard',hope:1}},
+    ranger_path:{heroClass:'Ranger',desc:'track the missing survivors through a concealed root passage',success:'survivor_camp',effects:{flag:'ranger_hidden_path',hope:1}},
+    thief_path:{heroClass:'Thief',desc:'slip inside and release the gate catches',success:'survivor_camp',effects:{flag:'thief_gate_latch',hope:1}},
+    monk_path:{heroClass:'Monk',desc:'calm the frightened company and follow the quiet passage',success:'survivor_camp',effects:{flag:'monk_gate_calm',hope:1}},
+    engineer_path:{heroClass:'Engineer',desc:'restore the broken gate counterweight',success:'survivor_camp',effects:{flag:'engineer_gate_repaired',hope:1}}
+  },
+  echo_chamber:{
+    knight_echo:{heroClass:'Knight',desc:'hold the stone doors while everyone escapes',success:'quiet_fire',effects:{flag:'knight_doors_held',hope:1}},
+    ranger_echo:{heroClass:'Ranger',desc:'locate the air current marking an open escape passage',success:'quiet_fire',effects:{flag:'ranger_escape_route',hope:1}},
+    thief_echo:{heroClass:'Thief',desc:'free the ancient latch hidden in the mural',success:'quiet_fire',effects:{flag:'thief_echo_latch',hope:1}},
+    monk_echo:{heroClass:'Monk',desc:'steady the company against the voices and lead them out',success:'quiet_fire',effects:{flag:'monk_voices_resisted',hope:1}},
+    engineer_echo:{heroClass:'Engineer',desc:'jam the descending counterweights',success:'quiet_fire',effects:{flag:'engineer_counterweights',hope:1}}
+  },
+  mountain_gate:{
+    knight_seal:{heroClass:'Knight',desc:'brace the shattered gate while companions pass through',success:'vault_puzzle',effects:{flag:'knight_mountain_pass',hope:1}},
+    ranger_seal:{heroClass:'Ranger',desc:'find a safe mountain approach around the sealed gate',success:'vault_puzzle',effects:{flag:'ranger_mountain_path',hope:1}},
+    thief_seal:{heroClass:'Thief',desc:'open an old keeper passage without triggering the outer lock',success:'vault_puzzle',effects:{flag:'thief_keeper_passage',hope:1}},
+    monk_seal:{heroClass:'Monk',desc:'recognise the keeper prayer that releases the sacred gate',success:'vault_puzzle',effects:{flag:'monk_keeper_prayer',hope:1}},
+    engineer_seal:{heroClass:'Engineer',desc:'rebalance the immense gate mechanism',success:'vault_puzzle',effects:{flag:'engineer_mountain_mechanism',hope:1}}
+  }
+};
+for(const [scene, entries] of Object.entries(classMoments)){
+  for(const [key,cfg] of Object.entries(entries)) {const skill={Knight:'Strength',Ranger:'Survival',Thief:'Stealth',Monk:'Spirit',Engineer:'Craft'}[cfg.heroClass];actionMap[scene][key]={type:'support',difficulty:7,recommended:skill,allowedSkills:[skill],failure:cfg.success,reason:'A distinctive class approach: success grants Hope; a setback still advances the story.',...cfg};}
+}
+
+
+  socket.on('chooseAction',({action})=>{const room=rooms.get(socket.data.roomCode);if(!room||room.phase!=='playing')return;const active=activePlayer(room),group=activeGroup(room);if(!active||!group||active.id!==socket.data.playerId)return socket.emit('errorMsg','It is not your turn.');if(group.pending)return;const cfg=actionMap[group.scene]?.[action];if(!cfg)return;if(cfg.heroClass&&active.cls!==cfg.heroClass)return socket.emit('errorMsg','That approach belongs to a different class.');const unmet=requirementsMet(room,cfg);if(unmet)return socket.emit('errorMsg',unmet);if(cfg.mageSpellCost){if(active.cls!=='Mage')return socket.emit('errorMsg','Only a Mage can cast this spell.');if((active.milestone||0)<1)return socket.emit('errorMsg','Magic unlocks at the first expedition milestone.');if((active.energy||0)<cfg.mageSpellCost)return socket.emit('errorMsg',`This spell needs ${cfg.mageSpellCost} Mana.`);active.energy-=cfg.mageSpellCost;}
+    if(cfg.type==='split'){if(group.playerIds.length<2){const target=cfg.soloScene||cfg.routes?.a?.scene;emitOutcome(room,outcomePayload(room,cfg,'instant',target,{},group),group);transition(room,target,group);nextTurn(room);emitRoom(room);return;}group.pending={...cfg,action,actingPlayerId:active.id,type:'split'};emitRoom(room);return;}
+    if(cfg.type==='instant'){effect(room,cfg,true);applyNarrativeMeta(room,cfg,true,active);const target=cfg.success;emitOutcome(room,outcomePayload(room,cfg,'instant',target,{},group),group);transition(room,target,group);addLog(room,`${active.name}: ${cfg.desc||action}.`);nextTurn(room);emitRoom(room);return;}
+    const tr=threatRules(room),tp=cfg.type==='team'?teamProfile(cfg,room,group):null,nd=narrativeDifficulty(room,cfg,Number(cfg.difficulty||0)+(cfg.dangerous?tr.dangerPenalty:0)),nt=narrativeDifficulty(room,cfg,Number(cfg.memberDifficulty||0)+(cfg.dangerous?tr.dangerPenalty:0));group.pending={...cfg,teamRoles:Array.isArray(cfg.teamRoles)?cfg.teamRoles.map(r=>({...r,skills:(r.skills||[]).slice(0,2)})):cfg.teamRoles,allowedSkills:challengeSkills(cfg),supportSkills:supportSkillsFor(cfg),effectiveDifficulty:nd.value,effectiveMemberDifficulty:nt.value,knowledgeNote:nd.note||nt.note,supportTarget:tr.supportTarget,threatLabel:tr.label,teamProfile:tp,action,actingPlayerId:active.id,challengeId:'ch_'+crypto.randomBytes(6).toString('hex')};emitRoom(room);
+  });
+
+  socket.on('resolveSplit',({assignments})=>{const room=rooms.get(socket.data.roomCode),active=room&&activePlayer(room),group=room&&activeGroup(room);if(!room||!active||!group||active.id!==socket.data.playerId||group.pending?.type!=='split')return;const cfg=group.pending,routes=cfg.routes||{};const ids=[...group.playerIds];const map=assignments||{};const a=ids.filter(id=>map[id]==='a'),b=ids.filter(id=>map[id]==='b');if(!a.length||!b.length)return socket.emit('errorMsg','Put at least one hero on each route.');const splitSet='split_'+crypto.randomBytes(4).toString('hex');const mk=(key,members)=>({id:splitSet+'_'+key,name:routes[key]?.name||`Group ${key.toUpperCase()}`,playerIds:members,scene:routes[key]?.scene,pending:null,lastRoll:null,trail:[routes[key]?.scene],splitSet,waitingMerge:null});const ga=mk('a',a),gb=mk('b',b);room.routeHistory=room.routeHistory||[];room.routeHistory.push({id:group.id,name:group.name,playerIds:[...group.playerIds],trail:[...(group.trail||[])],complete:true});room.groups=room.groups.filter(g=>g.id!==group.id);room.groups.push(ga,gb);for(const id of a){const p=getPlayer(room,id);if(p)p.groupId=ga.id;}for(const id of b){const p=getPlayer(room,id);if(p)p.groupId=gb.id;}recordScene(room,ga,ga.scene);recordScene(room,gb,gb.scene);emitContextClues(room,ga.scene,a);emitContextClues(room,gb.scene,b);addLog(room,`The company split: ${ga.name} and ${gb.name}.`);nextTurn(room);emitRoom(room);});
+
+  socket.on('rollChallenge',({skill,supportPlayerId,supportSkill,team,challengeId},ack)=>{try{const room=rooms.get(socket.data.roomCode);const reject=(message)=>{socket.emit('errorMsg',message);if(typeof ack==='function')ack({ok:false,message});};if(!room)return reject('That room is no longer active. Rejoin the expedition and try again.');const group=activeGroup(room),cfg=group?.pending,active=activePlayer(room);if(!group||!cfg)return reject('That challenge is no longer active.');if(challengeId&&cfg.challengeId&&challengeId!==cfg.challengeId)return reject('The challenge changed before the roll arrived. Use the current Roll button.');if(!active||active.id!==socket.data.playerId||cfg.actingPlayerId!==socket.data.playerId)return reject('Only the active hero can resolve this challenge.');let success=false,detail={type:cfg.type,desc:cfg.desc},participants=[];
+    if(cfg.type==='team'){const profile=cfg.teamProfile||teamProfile(cfg,room,group),needed=profile.count;if(!Array.isArray(team)||team.length!==needed)return reject(`Choose ${needed} different heroes.`);const ids=team.map(x=>x.playerId);if(new Set(ids).size!==ids.length)return reject('Choose different heroes for each team slot.');if(ids.some(id=>!group.playerIds.includes(id)))return reject('Team members must be with your current group.');const results=[];for(let i=0;i<team.length;i++){const pick=team[i],p=getPlayer(room,pick.playerId);if(!p||!skills.includes(pick.skill))return reject('Invalid team selection.');const role=cfg.teamRoles?.[i];if(role&&!role.skills.includes(pick.skill))return reject(`${role.name} needs one of its listed skills.`);let rollMode='normal',rolls=[];const mastery=Number(p.stats[pick.skill]||0)>=6,wounded=cfg.dangerous&&p.wounds>=2;if(mastery&&!wounded){rollMode='advantage';rolls=[rollD6(),rollD6()];}else if(wounded&&!mastery){rollMode='disadvantage';rolls=[rollD6(),rollD6()];}else rolls=[rollD6()];const die=rollMode==='advantage'?Math.max(...rolls):rollMode==='disadvantage'?Math.min(...rolls):rolls[0],bonus=skillBonus(p,pick.skill,cfg,true),total=die+bonus,ok=total>=(cfg.effectiveMemberDifficulty||cfg.memberDifficulty);if(!ok&&cfg.dangerous)p.wounds=Math.min(3,p.wounds+1);results.push({playerId:p.id,name:p.name,role:role?.name||null,skill:pick.skill,rolls,rollMode,die,bonus,total,ok});participants.push(p);}const successes=results.filter(r=>r.ok).length;const full=profile.full,partialAt=profile.partial;const grade=successes>=full?'success':(partialAt!=null&&successes>=partialAt?'partial':'setback');success=grade!=='setback';detail={...detail,results,successes,need:full,full,partialAt,grade,success,dangerous:!!cfg.dangerous};
+    } else {const allowed=challengeSkills(cfg);if(!allowed.includes(skill))return reject(`This challenge requires ${allowed.join(' or ')}.`);let rollMode='normal',dice=[];const mastery=Number(active.stats[skill]||0)>=6,wounded=cfg.dangerous&&active.wounds>=2;if(mastery&&!wounded){rollMode='advantage';dice=[rollD6(),rollD6()];}else if(wounded&&!mastery){rollMode='disadvantage';dice=[rollD6(),rollD6()];}else dice=Array.from({length:cfg.dice||1},rollD6);const base=rollMode==='advantage'?Math.max(...dice):rollMode==='disadvantage'?Math.min(...dice):dice.reduce((a,b)=>a+b,0),bonus=skillBonus(active,skill,cfg,false);let support=null,supportBonus=0;participants.push(active);if(cfg.type==='support'&&supportPlayerId){const sp=getPlayer(room,supportPlayerId);const supportAllowed=supportSkillsFor(cfg);if(!sp||sp.id===active.id||!group.playerIds.includes(sp.id)||!sp.supportReady||!supportAllowed.includes(supportSkill))return reject(`Support here requires ${supportAllowed.join(' or ')}.`);const die=rollD6(),total=die+skillBonus(sp,supportSkill,cfg,false),ok=total>=(cfg.supportTarget||6);sp.supportReady=false;supportBonus=ok?(sp.talent==='Guardian'?3:2):0;support={playerId:sp.id,name:sp.name,skill:supportSkill,die,total,ok};participants.push(sp);}const total=base+bonus+supportBonus;success=total>=(cfg.effectiveDifficulty||cfg.difficulty);if(!success&&cfg.dangerous)active.wounds=Math.min(3,active.wounds+1);detail={...detail,dice,rollMode,skill,bonus,support,supportBonus,total,difficulty:(cfg.effectiveDifficulty||cfg.difficulty),success,dangerous:!!cfg.dangerous};}
+    for(const p of participants)p.empowered=false;const low=!!cfg.lowStakes;if(!low)for(const p of participants)awardGrowth(room,p,1,'resolving a challenge');if(success&&!low){for(const p of participants)awardReputation(room,p,repKeyFor(detail.skill||cfg.recommended||'Awareness',cfg.desc||''),1);}maybeWearGear(room,participants,cfg,success);for(const p of participants){if(p.gearUpgrades&&Number(p.gearUpgrades.serviceUses||0)>0&&!!cfg.dangerous)p.gearUpgrades.serviceUses=Math.max(0,p.gearUpgrades.serviceUses-1);}if(success){effect(room,cfg,true);applyNarrativeMeta(room,cfg,true,active);if(cfg.type==='team'&&detail.grade==='partial')applyTeamPartialCost(room,detail);}else if(!low)room.threat=Math.min(6,room.threat+1);applyRollMoment(room,detail);if(low&&detail.complication){if(detail.complicationEffect==='Threat +1')room.threat=Math.max(0,room.threat-1);detail.complication=false;detail.complicationEffect=null;}group.lastRoll=detail;if(typeof ack==='function')ack({ok:true,challengeId:cfg.challengeId||null});addLog(room,`${active.name}: ${cfg.desc} — ${success?(detail.grade==='partial'?'partial success':'success'):'setback'}.`);
+    if(success){const graded=low?'sense':(cfg.type==='team'&&detail.grade==='partial'?'partial':'success');const target=cfg.success;emitOutcome(room,outcomePayload(room,cfg,graded,target,detail,group),group);transition(room,target,group);nextTurn(room);emitRoom(room);return;}
+    if(low){applyNarrativeMeta(room,cfg,false,active);const target=cfg.failure||cfg.success;emitOutcome(room,outcomePayload(room,cfg,'miss',target,detail,group),group);transition(room,target,group);nextTurn(room);emitRoom(room);return;}
+    const interveners=groupPlayers(room,group).filter(p=>p.id!==active.id&&p.interventionReady);if(interveners.length){group.pending={...cfg,failed:true,lastDetail:detail,eligibleInterveners:interveners.map(p=>p.id)};emitRoom(room);return;}resolveFailure(room,cfg,group);emitRoom(room);
+    }catch(err){console.error('rollChallenge failed',err);socket.emit('errorMsg','The roll hit an internal error. Your challenge is still active; retry the roll.');if(typeof ack==='function')ack({ok:false,message:'The roll hit an internal error. Please retry.'});}
+  });
+
+  socket.on('spendHope',()=>{const room=rooms.get(socket.data.roomCode),group=room&&activeGroup(room);if(!room||!group?.pending?.failed)return;const active=activePlayer(room);if(!active||active.id!==socket.data.playerId)return socket.emit('errorMsg','Only the active hero can spend Hope here.');if(room.hope<2)return socket.emit('errorMsg','The company needs 2 Hope to soften this setback.');const cfg=group.pending,detail=cfg.lastDetail||group.lastRoll||{};room.hope-=2;detail.partialEffect='Hope -2';effect(room,cfg,true);applyNarrativeMeta(room,cfg,true,active);emitOutcome(room,outcomePayload(room,cfg,'partial',cfg.success,detail,group),group);transition(room,cfg.success,group);nextTurn(room);emitRoom(room);});
+  socket.on('intervene',()=>{const room=rooms.get(socket.data.roomCode),group=room&&activeGroup(room);if(!room||!group?.pending?.failed)return;const p=socketPlayer(room,socket);if(!p||!group.playerIds.includes(p.id)||!p.interventionReady||!group.pending.eligibleInterveners.includes(p.id))return;const skill={Knight:'Strength',Ranger:'Awareness',Thief:'Stealth',Mage:'Spirit',Monk:'Spirit',Engineer:'Craft'}[p.cls],die=rollD6(),total=die+skillBonus(p,skill,group.pending,false),ok=total>=(p.talent==='Healer'?6:7);p.interventionReady=false;awardGrowth(room,p,1,'a Heroic Intervention');group.lastRoll={type:'intervention',name:p.name,skill,die,total,success:ok};const cfg=group.pending;if(ok){effect(room,cfg,true);applyNarrativeMeta(room,cfg,true,p);emitOutcome(room,outcomePayload(room,cfg,'partial',cfg.success,{heroicMoment:false,complication:false},group),group);transition(room,cfg.success,group);nextTurn(room);emitRoom(room);}else{const active=activePlayer(room),remaining=groupPlayers(room,group).filter(x=>x.id!==active?.id&&x.interventionReady&&cfg.eligibleInterveners.includes(x.id));if(!remaining.length){resolveFailure(room,cfg,group);emitRoom(room);}else emitRoom(room);}});
+  socket.on('declineIntervention',()=>{const room=rooms.get(socket.data.roomCode),group=room&&activeGroup(room);if(!room||!group?.pending?.failed)return;const active=activePlayer(room);if(!active||active.id!==socket.data.playerId)return;resolveFailure(room,group.pending,group);emitRoom(room);});
+  socket.on('disconnect',()=>{const room=rooms.get(socket.data.roomCode);if(!room)return;const p=socketPlayer(room,socket);if(p&&p.socketId===socket.id){p.connected=false;p.voiceJoined=false;p.voiceMuted=false;p.voiceSpeaking=false;p.socketId=null;}emitRoom(room);if(!room.players.some(x=>x.connected))setTimeout(()=>{if(rooms.get(room.code)===room&&!room.players.some(x=>x.connected))rooms.delete(room.code);},4*60*60*1000);});
+});
+
+server.listen(PORT, () => console.log(`Lost Expedition RPG listening on ${PORT}`));

@@ -1,0 +1,20 @@
+{
+  "name": "the-veil-of-aranor",
+  "version": "21.0.0",
+  "private": true,
+  "description": "The Veil of Aranor - Definitive Presentation Upgrade",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "translations:sync": "node scripts/sync-translations.mjs",
+    "translations:check": "node scripts/sync-translations.mjs --check",
+    "translations:export": "node scripts/export-translations.mjs"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
