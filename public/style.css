@@ -298,3 +298,10 @@ body::before{display:none!important;content:none!important}
 .home-screen .hero-banner--opening{background-image:linear-gradient(90deg,rgba(3,7,13,.58) 0%,rgba(3,7,13,.26) 40%,rgba(3,7,13,.02) 76%),linear-gradient(0deg,rgba(3,7,13,.36),transparent 38%),url('/assets/v21_landing.jpg?v=215'),url('/assets/lost_home.jpg?v=215')!important;background-size:cover!important;background-position:center center!important}
 .home-screen .hero-banner__overlay{background:linear-gradient(0deg,rgba(5,11,18,.16),transparent 52%)!important}
 #sceneReveal::before{background:linear-gradient(180deg,rgba(255,237,178,.02),transparent 28%,rgba(0,0,0,.08))!important}
+
+/* V21.6: display illustrations unfiltered; captions use a text shadow only. */
+.scene-art::after{display:none!important;content:none!important;background:none!important}
+.scene-art__caption{z-index:3!important;color:#fff!important;text-shadow:0 2px 3px #000,0 0 7px #000,0 1px 14px #000!important}
+.home-screen .hero-banner--opening{background-image:url('/assets/v21_landing.jpg?v=216')!important;background-position:center!important;background-size:cover!important}
+.home-screen .hero-banner__overlay,.hero-banner__overlay{background:none!important}
+#sceneReveal::before{background:none!important;content:none!important}
