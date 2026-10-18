@@ -12,7 +12,7 @@
 .item-modal__card p{line-height:1.65;color:#f2ead8}
 
 /* Cinematic polish */
-.hero-banner{background-image:linear-gradient(90deg,rgba(5,9,17,.82),rgba(5,9,17,.24)),url('assets/title.jpg');background-size:cover;background-position:center}
+.hero-banner{background-image:linear-gradient(90deg,rgba(5,9,17,.82),rgba(5,9,17,.24)),url('/assets/v21_landing.jpg');background-size:cover;background-position:center}
 .hero-banner:before,.hero-banner:after{display:none}.hero-banner__overlay{background:linear-gradient(90deg,rgba(5,9,17,.86),rgba(5,9,17,.28) 62%,rgba(5,9,17,.08))}
 .class-preview{display:flex;align-items:center;gap:12px;padding:9px}.class-portrait{width:64px;height:72px;object-fit:cover;border-radius:9px;border:1px solid #6a5839;flex:0 0 auto}.player-ident{display:flex;align-items:center;gap:9px;min-width:0}.mini-portrait{width:38px;height:38px;object-fit:cover;border-radius:8px;border:1px solid #6a5839}.scene-art{background-size:cover!important;background-position:center!important}.scene-art__icon{font-size:4.6rem;opacity:.92}.scene-art__caption{text-shadow:0 2px 8px #000}.choice{position:relative;overflow:hidden}.choice:after{content:'›';position:absolute;right:15px;top:50%;transform:translateY(-50%);font-size:1.5rem;color:var(--gold2)}
 .btn,.choice{border-width:2px}.btn-primary{box-shadow:0 5px 0 #72511f,0 8px 18px rgba(0,0,0,.2)}.btn-success{box-shadow:0 5px 0 #1e6446,0 8px 18px rgba(0,0,0,.2)}.btn-secondary-accent{box-shadow:0 5px 0 #263f96,0 8px 18px rgba(0,0,0,.2)}
@@ -154,7 +154,7 @@ body.threat-high .game-shell{box-shadow:inset 0 0 85px rgba(102,23,23,.10)}body.
 
 /* Lost Expedition bespoke art direction — v7 */
 :root{--gold2:#e6be74}
-.hero-banner{background-image:linear-gradient(90deg,rgba(3,12,17,.94),rgba(3,15,20,.66) 53%,rgba(7,18,22,.21)),url('assets/exp_home.jpg');background-position:center 42%;border-color:#947048}
+.hero-banner{background-image:linear-gradient(90deg,rgba(3,12,17,.94),rgba(3,15,20,.66) 53%,rgba(7,18,22,.21)),url('/assets/v21_landing.jpg');background-position:center 42%;border-color:#947048}
 .hero-banner__overlay{background:linear-gradient(90deg,rgba(3,12,17,.9),rgba(3,12,17,.4) 65%,rgba(3,12,17,.08))}
 .portrait-choice{width:78px;height:95px;border-color:#6d6046;background:#1c231f}
 .portrait-choice:focus-visible{outline:3px solid #f2cb7f;outline-offset:3px}
@@ -188,7 +188,7 @@ body.threat-high .game-shell{box-shadow:inset 0 0 85px rgba(102,23,23,.10)}body.
 .access-help-card{width:min(610px,100%);max-height:92vh;overflow:auto}.access-help-body{line-height:1.6}.access-help-body p{margin:0 0 13px}.access-help-body strong{color:#f3d790}.roll-help{margin:10px 0;padding:10px 13px;border:1px solid #465979;border-radius:10px;background:#12213a;font-size:.88rem;line-height:1.5;color:#e2eaf5}.access-tip{font-size:.88rem;color:#cdd8ed;margin:8px 0}.access-tip button{background:none;border:0;color:#f4d68a;text-decoration:underline;cursor:pointer;padding:0}.access-help-trigger{white-space:nowrap}
 
 /* V15: a purpose-composed, brighter expedition landing image. Keep the title readable. */
-.home-screen .hero-banner--opening{background-image:linear-gradient(90deg,rgba(4,11,17,.86) 0%,rgba(4,11,17,.66) 31%,rgba(4,11,17,.10) 68%,rgba(4,11,17,.02) 100%),url('assets/landing_v15.jpg');background-position:center 48%;background-size:cover}
+.home-screen .hero-banner--opening{background-image:linear-gradient(90deg,rgba(4,11,17,.86) 0%,rgba(4,11,17,.66) 31%,rgba(4,11,17,.10) 68%,rgba(4,11,17,.02) 100%),url('/assets/v21_landing.jpg');background-position:center 48%;background-size:cover}
 .home-screen .hero-banner__overlay{background:linear-gradient(0deg,rgba(5,11,18,.32),transparent 48%)}
 .home-screen .hero-banner h1{text-shadow:0 4px 22px rgba(0,0,0,.85)}
 .home-language-bar{justify-content:flex-end}.home-language-bar .fullscreen-toggle{margin-right:auto}
@@ -196,7 +196,7 @@ body.threat-high .game-shell{box-shadow:inset 0 0 85px rgba(102,23,23,.10)}body.
 .advancement-card{position:relative;width:min(510px,100%);padding:28px;border-radius:20px;border:1px solid #ac8b51;background:linear-gradient(140deg,#1b2940,#0e1728);box-shadow:0 24px 85px rgba(0,0,0,.65);display:flex;gap:14px;flex-direction:column}
 .advancement-kicker{color:#f1cb82;font-size:.78rem;font-weight:900;letter-spacing:.15em}.advancement-row{display:flex;align-items:center;gap:20px}.advancement-row img{width:100px;height:124px;object-fit:cover;flex:0 0 auto;border-radius:12px;border:1px solid #a58a58}.advancement-row h2{font-size:clamp(1.45rem,3vw,2rem);margin:0 0 8px}.advancement-row p{margin:0;line-height:1.5}.advancement-close{position:absolute;right:12px;top:10px;border:0;background:transparent;color:#fff;font-size:1.6rem;cursor:pointer}
 .advancement-notice.hidden{display:none!important}.advancement-card .btn{width:100%}
-@media(max-width:600px){.advancement-card{padding:22px}.advancement-row img{width:78px;height:98px}.home-screen .hero-banner--opening{background-position:60% center;background-image:linear-gradient(90deg,rgba(4,11,17,.80),rgba(4,11,17,.38)),url('assets/landing_v15.jpg')}}
+@media(max-width:600px){.advancement-card{padding:22px}.advancement-row img{width:78px;height:98px}.home-screen .hero-banner--opening{background-position:60% center;background-image:linear-gradient(90deg,rgba(4,11,17,.80),rgba(4,11,17,.38)),url('/assets/v21_landing.jpg')}}
 
 /* V18.1 compact personal hero panel */
 .mini-hero-panel{padding:17px}.mini-hero-panel .eyebrow{margin-bottom:10px}.mini-hero-identity{display:grid;grid-template-columns:66px minmax(0,1fr);gap:12px;align-items:center}.mini-hero-identity img{width:66px;height:78px;object-fit:cover;border:1px solid #8f774c;border-radius:10px}.mini-hero-identity strong{display:block;font-size:1.05rem;color:#f4e8cf}.mini-hero-identity span,.mini-hero-identity small{display:block;color:#bfc9da;font-size:.8rem;line-height:1.5}.mini-hero-stats{display:flex;gap:7px;flex-wrap:wrap;margin:13px 0}.mini-hero-stats span{font-size:.77rem;padding:6px 8px;background:#10182a;border:1px solid #425171;border-radius:8px;white-space:nowrap}.mini-hero-stats b{color:#eed18d}.mini-hero-panel .btn{margin-top:2px}.mini-hero-panel:focus-within{border-color:#9d804c}
@@ -241,7 +241,7 @@ body.threat-high .game-shell{box-shadow:inset 0 0 85px rgba(102,23,23,.10)}body.
 /* V21 DEFINITIVE PRESENTATION UPGRADE */
 /* Global map texture removed: cartography belongs only in the journey map. */
 .panel{backdrop-filter:blur(5px)}
-.home-screen .hero-banner--opening{background-image:linear-gradient(90deg,rgba(3,7,13,.82) 0%,rgba(3,7,13,.46) 43%,rgba(3,7,13,.08) 82%),linear-gradient(0deg,rgba(3,7,13,.72),transparent 48%),url('assets/v21_landing.jpg');background-position:center center}
+.home-screen .hero-banner--opening{background-image:linear-gradient(90deg,rgba(3,7,13,.82) 0%,rgba(3,7,13,.46) 43%,rgba(3,7,13,.08) 82%),linear-gradient(0deg,rgba(3,7,13,.72),transparent 48%),url('/assets/v21_landing.jpg');background-position:center center}
 .home-screen .hero-banner__microcopy,.home-screen .hero-subtitle{text-shadow:0 2px 10px rgba(0,0,0,.45)}
 .panel,.room-share,.player-card,.challenge-box,.world-map,.mini-hero-panel{box-shadow:0 14px 34px rgba(0,0,0,.26), inset 0 1px rgba(255,244,212,.04)}
 .challenge-box{position:relative;overflow:hidden;border-color:#8e7548;background:linear-gradient(180deg,rgba(24,34,54,.98),rgba(13,19,33,.98));box-shadow:0 18px 36px rgba(0,0,0,.22),inset 0 1px rgba(255,236,185,.06)}
@@ -278,3 +278,7 @@ body.threat-high .game-shell{box-shadow:inset 0 0 85px rgba(102,23,23,.10)}body.
 #sceneReveal::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,237,178,.06),transparent 24%,rgba(0,0,0,.15));pointer-events:none}
 .choice{background:linear-gradient(180deg,#253654,#1a253c);border-color:#4f6388}
 .choice:hover:not(:disabled){box-shadow:0 8px 18px rgba(0,0,0,.20)}
+
+/* V21.2: deployment-safe landing art, no map overlay on the page */
+body::before{display:none!important;content:none!important}
+.home-screen .hero-banner--opening{background-image:linear-gradient(90deg,rgba(3,7,13,.82) 0%,rgba(3,7,13,.46) 43%,rgba(3,7,13,.08) 82%),linear-gradient(0deg,rgba(3,7,13,.72),transparent 48%),url('/assets/v21_landing.jpg')!important;background-size:cover!important;background-position:center center!important}
