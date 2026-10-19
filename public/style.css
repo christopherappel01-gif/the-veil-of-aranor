@@ -305,3 +305,60 @@ body::before{display:none!important;content:none!important}
 .home-screen .hero-banner--opening{background-image:url('/assets/v21_landing.jpg?v=217')!important;background-position:center!important;background-size:cover!important}
 .home-screen .hero-banner__overlay,.hero-banner__overlay{background:none!important}
 #sceneReveal::before{background:none!important;content:none!important}
+
+/* V21.8 — unified menus: no platform-native white dropdowns anywhere. */
+.veil-picker{position:relative;width:100%;min-width:0;z-index:auto}
+.veil-picker.is-open{z-index:20000!important}
+.veil-picker__trigger{width:100%;min-height:48px;background:linear-gradient(165deg,#293a55,#121e32)!important;border:1px solid #907b54!important;border-radius:10px;color:#f6efdf!important;box-shadow:inset 0 1px rgba(255,255,255,.08);font-size:.95rem}
+.veil-picker__trigger:disabled{opacity:.55;cursor:not-allowed}
+.veil-picker__menu{z-index:20001!important;background:#111e31!important;border:1px solid #bb9758!important;box-shadow:0 18px 35px rgba(0,0,0,.75);max-height:min(330px,55vh)}
+.veil-picker__option{color:#f5eddc!important;background:#111e31;min-height:44px}
+.veil-picker__option:hover,.veil-picker__option:focus-visible{background:#304662!important;color:#fff!important}
+.veil-picker__option.active{background:#273c56!important;border-color:#a78a55!important}
+.veil-picker__native{position:absolute!important;left:0!important;top:0!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important;appearance:none!important}
+.veil-picker__option-copy{min-width:0;overflow-wrap:anywhere}
+.home-language-bar,.form-grid,.split-assignments,.builder-toolbar{overflow:visible}
+
+/* V22 living illustration effects. The original artwork remains visible under motion layers. */
+#sceneArt,.hero-banner--opening{isolation:isolate}
+.aranor-motion-layer{position:absolute;inset:0;z-index:1;pointer-events:none;overflow:hidden;border-radius:inherit;opacity:1}
+.scene-art__caption{z-index:5!important;position:relative}
+#sceneArt .aranor-motion-layer{z-index:1}
+#sceneArt .scene-art__caption{position:absolute}
+.home-screen .hero-banner--opening .aranor-motion-layer{z-index:0}
+.home-screen .hero-banner--opening .hero-banner__content{z-index:4}
+.aranor-motion-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.92;mix-blend-mode:normal}
+#sceneArt .aranor-motion-video{opacity:.88}
+.motion-mist{position:absolute;inset:-25% -45%;pointer-events:none;background:radial-gradient(ellipse at 20% 75%,rgba(218,229,224,.23),transparent 27%),radial-gradient(ellipse at 65% 45%,rgba(205,227,229,.16),transparent 32%);filter:blur(27px);opacity:.6;animation:aranorDrift 23s ease-in-out infinite alternate;z-index:2}
+.mist-two{background:radial-gradient(ellipse at 66% 74%,rgba(212,222,210,.19),transparent 25%),radial-gradient(ellipse at 18% 33%,rgba(229,236,229,.12),transparent 30%);animation:aranorDriftB 31s ease-in-out infinite alternate;opacity:.42}
+.motion-light{position:absolute;inset:0;z-index:2;opacity:.17;animation:aranorGlow 9s ease-in-out infinite;background:radial-gradient(ellipse at 68% 53%,rgba(248,207,125,.32),transparent 32%)}
+.motion-particles{position:absolute;inset:-20%;z-index:2;opacity:.06;background-image:radial-gradient(circle,rgba(235,232,201,.85) 1px,transparent 2px);background-size:86px 75px;animation:aranorParticles 38s linear infinite}
+.motion-sea .motion-mist,.motion-shore .motion-mist{opacity:.24}
+.motion-sea .motion-light{opacity:.16;mix-blend-mode:screen}
+.motion-storm .motion-mist{opacity:.58;filter:blur(17px);animation-duration:10s}
+.motion-storm .motion-light{background:rgba(216,230,255,.48);animation:aranorLightning 17s linear infinite}
+.motion-ruins .motion-mist,.motion-marsh .motion-mist{opacity:.62}
+.motion-marsh .mist-two{opacity:.7}
+.motion-settlement .motion-mist{opacity:.32;filter:blur(35px);animation-duration:28s}
+.motion-settlement .motion-light{background:radial-gradient(ellipse at 70% 68%,rgba(255,183,79,.65),transparent 16%);opacity:.4;animation-duration:4.6s}
+.motion-magic .motion-light{background:radial-gradient(ellipse at 55% 48%,rgba(107,203,255,.45),transparent 36%);opacity:.6;animation-duration:5.2s}
+.motion-magic .motion-particles{opacity:.26}
+.motion-forest .motion-mist{opacity:.34}
+@keyframes aranorDrift{from{transform:translate3d(-7%,1%,0) scale(1)}to{transform:translate3d(9%,-2%,0) scale(1.04)}}
+@keyframes aranorDriftB{from{transform:translate3d(10%,-3%,0)}to{transform:translate3d(-10%,2%,0)}}
+@keyframes aranorGlow{0%,100%{opacity:.12}50%{opacity:.38}}
+@keyframes aranorParticles{from{transform:translate3d(-1%,3%,0)}to{transform:translate3d(4%,-8%,0)}}
+@keyframes aranorLightning{0%,96%,97%,100%{opacity:0}96.2%{opacity:.32}96.5%{opacity:.02}96.8%{opacity:.17}}
+html[data-motion=off] .aranor-motion-layer{display:none!important}
+html[data-motion=enhanced] .motion-mist{opacity:.76}
+html[data-motion=enhanced] .motion-light{animation-duration:5s}
+html[data-motion=enhanced] .motion-particles{opacity:.20}
+/* In Standard mode imagery stays largely unobscured; other elements stay static. */
+@media(prefers-reduced-motion:reduce){html:not([data-motion=enhanced]) .aranor-motion-layer{display:none!important}}
+/* Moving fog-of-war and objective highlight: map markers stay readable */
+html:not([data-motion=off]) .map-fog{animation:aranorMapMist 28s ease-in-out infinite alternate;transform-origin:center}
+html:not([data-motion=off]) .map-current{animation:aranorMapPulse 3.8s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+html[data-motion=enhanced] .map-current{animation-duration:2.5s}
+@keyframes aranorMapMist{from{opacity:.96}to{opacity:.86}}
+@keyframes aranorMapPulse{0%,100%{opacity:1}50%{opacity:.47}}
+@media(prefers-reduced-motion:reduce){html:not([data-motion=enhanced]) .map-fog,html:not([data-motion=enhanced]) .map-current{animation:none!important}}
