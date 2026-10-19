@@ -1,6 +1,6 @@
 {
   "name": "the-veil-of-aranor",
-  "version": "21.6.0",
+  "version": "21.7.0",
   "private": true,
   "description": "The Veil of Aranor - Definitive Presentation Upgrade",
   "main": "server.js",
