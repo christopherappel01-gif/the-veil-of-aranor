@@ -611,10 +611,45 @@ const classNarrativeInsights={
  Monk:{troll:'The creature’s fear is stronger than its anger.',marsh_lights:'The voices take the shape of private regrets, not reliable memories.',heart_vision:'A familiar voice could reach the trapped hero.',final_cost:'Sacrifice is a choice to be shared, not imposed on the nearest hero.'},
  Engineer:{storm:'The ship was struck by a solid object before the great wave.',green_gate:'The stone doors are a living machine with counterweights.',echo_chamber:'The mural conceals the track of the closing doors.',mountain_gate:'The sealed road was built with a second service route.',last_beacon:'The controls have three configurations, each distributing power differently.'}
 };
+
+// V22 subtle motion system. No game state is changed by ambient motion.
+const motionOptions=['off','standard','enhanced'];
+const motionReduced=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches||false;
+let motionMode=(()=>{try{const stored=localStorage.getItem('aranorMotionMode');return motionOptions.includes(stored)?stored:(motionReduced?'off':'standard');}catch{return motionReduced?'off':'standard';}})();
+const sceneMotionTypes={
+ intro:'sea',deck_pause:'sea',storm:'storm',after_storm:'storm',wave:'storm',undercliff_wreck:'shore',wreck:'shore',wreck_fire:'shore',shore_camp:'shore',shore_rest:'shore',smoke_shore:'shore',
+ road:'forest',green_gate:'ruins',survivor_camp:'ruins',whisper_ruins:'ruins',six_mural:'magic',quiet_fire:'ruins',root_tunnels:'ruins',
+ marsh_route:'marsh',reed_islands:'marsh',moon_pool:'marsh',marsh_shelter:'marsh',marsh_lights:'marsh',lost_marsh:'marsh',marsh_night:'marsh',
+ council:'settlement',serayne_hub:'settlement',goblin_border:'forest',medicine_choice:'settlement',
+ heart_chamber:'magic',heart_vision:'magic',heart_truth:'magic',mountain_gate:'magic',mirror_vault:'magic',last_beacon:'magic',final_cost:'magic',beacon_keeper:'magic'
+};
+function configureMotion(){
+ document.documentElement.dataset.motion=motionMode;
+ const b=document.getElementById('motionToggle'); if(b){b.textContent='Motion: '+motionMode.charAt(0).toUpperCase()+motionMode.slice(1);b.setAttribute('aria-label','Motion effects '+motionMode+'. Click to change.');}
+ document.querySelectorAll('.aranor-motion-video').forEach(v=>{if(motionMode==='off'){v.pause();}else{const p=v.play();if(p&&p.catch)p.catch(()=>{});}});
+}
+function cycleMotion(){motionMode=motionOptions[(motionOptions.indexOf(motionMode)+1)%motionOptions.length];try{localStorage.setItem('aranorMotionMode',motionMode);}catch{}configureMotion();}
+function motionMarkup(kind,landing=false){
+ if(!kind)return '';
+ return `<div class="aranor-motion-layer motion-${kind}" aria-hidden="true"><div class="motion-mist mist-one"></div><div class="motion-mist mist-two"></div><div class="motion-light"></div><div class="motion-particles"></div>${kind==='sea'?'<video class="aranor-motion-video" autoplay loop muted playsinline preload="none" poster="/assets/v21_landing.jpg"><source src="/assets/aranor_sea_motion.mp4" type="video/mp4"></video>':''}</div>`;
+}
+function renderSceneMotion(scene){
+ const el=document.getElementById('sceneArt');if(!el)return;
+ const kind=sceneMotionTypes[scene]||'';
+ const existing=el.querySelector('.aranor-motion-layer');
+ if(existing?.classList.contains('motion-'+kind)){configureMotion();return;}
+ existing?.remove();
+ if(kind){const wrap=document.createElement('div');wrap.innerHTML=motionMarkup(kind);el.insertBefore(wrap.firstElementChild,el.firstChild);}
+ configureMotion();
+}
+function installLandingMotion(){const b=document.querySelector('.hero-banner--opening');if(!b)return;if(!b.querySelector('.aranor-motion-layer')){const w=document.createElement('div');w.innerHTML=motionMarkup('sea',true);b.insertBefore(w.firstElementChild,b.firstChild);}configureMotion();}
+function initMotion(){const b=document.getElementById('motionToggle');if(b)b.onclick=cycleMotion;installLandingMotion();configureMotion();}
+// Avoid changing read-aloud content or interactive gameplay while animating backgrounds.
+
 function renderGame(){
   show('game');const sc=scenes[state.scene];if(!sc)return;updateAmbience(state.scene);renderVoiceUi();syncVoicePeers();
   $('sceneTitle').textContent=sc.title;$('sceneText').innerHTML=sc.text.map(x=>`<p>${x}</p>`).join('')+(state.scene==='intro'?openingCompanyHtml():'');$('mission').textContent=sc.mission;const bridge=$('storyBridge');if(bridge){if(pendingStoryBridge&&pendingStoryBridge.scene===state.scene){bridge.innerHTML=`<p>${esc(pendingStoryBridge.text)}</p>`;bridge.classList.remove('hidden');}else bridge.classList.add('hidden');}
-  const art=sceneArt[state.scene]||['🧭',sc.title],image=sceneImages[state.scene]||'assets/lost_home.jpg';const [icon,caption]=art;$('sceneArt').className=`scene-art ${state.scene}`;$('sceneArt').style.backgroundImage=`url('${image}')`;$('sceneArt').querySelector('.scene-art__caption').textContent=caption;renderNpcMoment(state.scene);renderFinaleCallbacks(state.scene);renderQualityPanels(state.scene);
+  const art=sceneArt[state.scene]||['🧭',sc.title],image=sceneImages[state.scene]||'assets/lost_home.jpg';const [icon,caption]=art;$('sceneArt').className=`scene-art ${state.scene}`;$('sceneArt').style.backgroundImage=`url('${image}')`;$('sceneArt').querySelector('.scene-art__caption').textContent=caption;renderSceneMotion(state.scene);renderNpcMoment(state.scene);renderFinaleCallbacks(state.scene);renderQualityPanels(state.scene);
   $('round').textContent=state.round;$('hope').textContent=state.hope;$('threat').textContent=state.threat;$('supplies').textContent=state.supplies;$('relics').textContent=state.relics;if($('coin'))$('coin').textContent=state.coin||0;if($('pressureNote')){$('pressureNote').textContent=threatStatusText(state.threat);$('pressureNote').className='pressure-note '+(state.threat>=5?'high':state.threat>=3?'mid':'low');}
   const active=state.players[state.activeIndex],mine=active?.id===me,waiting=(state.groups||[]).find(g=>g.id===state.currentGroupId)?.waitingMerge;$('turnNotice').className='turn-notice'+(mine?' mine':'');$('turnNotice').innerHTML=waiting?`<b>${esc(state.currentGroupName||'Your group')} has reached the rendezvous.</b> The other group is still on its route.`:mine?`<b>Your turn, ${esc(active.name)}.</b> Choose what your hero does next.${state.groups?.length>1?` <span class="group-badge">${esc(state.currentGroupName)}</span>`:''}`:`Waiting for <b>${esc(active?.name||'')}</b>${state.groups?.length>1?` · ${esc((state.groups||[]).find(g=>(g.playerIds||[]).includes(active?.id))?.name||'another group')}`:''}.`;
   $('choices').innerHTML=''; if(!state.pending){const extra=specialistChoiceSets[state.scene]?.[active?.cls];const actionChoices=extra?[...sc.choices,extra]:sc.choices;actionChoices.forEach(choice=>{const [id,label,note]=choice,available=requirementSatisfied(choice)&&(!id.startsWith('spell_')||(active?.milestone||0)>=1&&(active?.energy||0)>=(id==='spell_seal'?2:1));const b=document.createElement('button');b.className='choice';b.disabled=!mine||!available;b.innerHTML=`<b>${label}</b><span>${note}${available?'':' · NOT CURRENTLY AVAILABLE'}</span>`;b.onclick=()=>socket.emit('chooseAction',{action:id});$('choices').appendChild(b);});}
@@ -936,46 +971,60 @@ function veilCue(kind){
   }catch{}
 }
 
-// V20: accessible, in-world pickers. Keep actual SELECT values for existing
-// multiplayer challenge validation; the visible menu is purely a presentation layer.
-function veilEnhanceChallengeSelectors(){
- const root=document.getElementById('challenge');if(!root||root.classList.contains('hidden'))return;
- root.querySelectorAll('select:not([data-veil-picker])').forEach(sel=>{
+// V21.8: Consistent, keyboard-operable in-world menus throughout the game.
+// Retain real <select> elements for native change events, multiplayer validation and translations.
+function veilEnhanceAllSelectors(){
+ document.querySelectorAll('select:not([data-veil-picker])').forEach(sel=>{
    sel.dataset.veilPicker='yes';
    const wrap=document.createElement('div');wrap.className='veil-picker';
    const trigger=document.createElement('button');trigger.type='button';trigger.className='veil-picker__trigger';trigger.setAttribute('aria-haspopup','listbox');trigger.setAttribute('aria-expanded','false');
    const menu=document.createElement('div');menu.className='veil-picker__menu hidden';menu.setAttribute('role','listbox');
    sel.parentNode.insertBefore(wrap,sel);wrap.append(sel,trigger,menu);
    sel.classList.add('veil-picker__native');sel.tabIndex=-1;
+   if(sel.id){trigger.setAttribute('aria-label',sel.getAttribute('aria-label')||sel.closest('label')?.childNodes[0]?.textContent?.trim()||sel.id);}
    const showOption=(opt)=>{
-     if(!opt)return '';
-     const isHero=sel.classList.contains('teamHero')||sel.id==='supportPlayer';
+     if(!opt)return '<span class="veil-picker__option-copy"><strong>Choose an option</strong></span>';
+     const isHero=sel.classList.contains('teamHero')||sel.id==='supportPlayer'||sel.id==='disconnectedPlayer';
      const hero=isHero?state?.players?.find(p=>p.id===opt.value):null;
      const portrait=hero?`<img class="veil-picker__portrait" src="${portraitPath(hero.cls,hero.portrait)}" alt="">`:'';
      const value=hero?`<strong>${esc(hero.name)}</strong><small>${esc(hero.cls)}</small>`:`<strong>${esc(opt.textContent)}</strong>`;
      return `${portrait}<span class="veil-picker__option-copy">${value}</span>`;
    };
+   const close=()=>{menu.classList.add('hidden');wrap.classList.remove('is-open');trigger.setAttribute('aria-expanded','false');};
    const update=()=>{
-      trigger.innerHTML=showOption(sel.selectedOptions[0])+'<span class="veil-picker__chevron" aria-hidden="true">⌄</span>';
-      menu.innerHTML=[...sel.options].map((o,i)=>`<button type="button" role="option" class="veil-picker__option ${i===sel.selectedIndex?'active':''}" data-index="${i}" aria-selected="${i===sel.selectedIndex}">${showOption(o)}${i===sel.selectedIndex?'<span class="veil-picker__check">✓</span>':''}</button>`).join('');
+      trigger.innerHTML=showOption(sel.selectedOptions[0]||sel.options[0])+'<span class="veil-picker__chevron" aria-hidden="true">⌄</span>';
+      trigger.disabled=sel.disabled;
+      menu.innerHTML=[...sel.options].map((o,i)=>`<button type="button" role="option" class="veil-picker__option ${i===sel.selectedIndex?'active':''}" data-index="${i}" aria-selected="${i===sel.selectedIndex}" ${o.disabled?'disabled':''}>${showOption(o)}${i===sel.selectedIndex?'<span class="veil-picker__check">✓</span>':''}</button>`).join('');
       menu.querySelectorAll('[data-index]').forEach(b=>b.onclick=()=>{
-         sel.selectedIndex=Number(b.dataset.index);sel.dispatchEvent(new Event('change',{bubbles:true}));veilCue('select');update();close();trigger.focus();
+         sel.selectedIndex=Number(b.dataset.index);sel.dispatchEvent(new Event('change',{bubbles:true}));if(typeof veilCue==='function')veilCue('select');update();close();trigger.focus();
       });
    };
-   const close=()=>{menu.classList.add('hidden');wrap.classList.remove('is-open');trigger.setAttribute('aria-expanded','false');};
    trigger.onclick=()=>{
       const isOpen=!menu.classList.contains('hidden');document.querySelectorAll('.veil-picker.is-open').forEach(w=>{w.classList.remove('is-open');w.querySelector('.veil-picker__menu')?.classList.add('hidden');w.querySelector('.veil-picker__trigger')?.setAttribute('aria-expanded','false');});
-      if(!isOpen){update();menu.classList.remove('hidden');wrap.classList.add('is-open');trigger.setAttribute('aria-expanded','true');menu.querySelector('.active')?.focus();}
+      if(!isOpen){update();menu.classList.remove('hidden');wrap.classList.add('is-open');trigger.setAttribute('aria-expanded','true');(menu.querySelector('.active')||menu.querySelector('.veil-picker__option'))?.focus();}
    };
-   wrap.addEventListener('keydown',e=>{if(e.key==='Escape'){close();trigger.focus();}if(e.key==='ArrowDown'&&!wrap.classList.contains('is-open')){e.preventDefault();trigger.click();}});
+   wrap.addEventListener('keydown',e=>{
+     if(e.key==='Escape'){e.preventDefault();close();trigger.focus();return;}
+     if(['ArrowDown','ArrowUp','Home','End'].includes(e.key)){
+       e.preventDefault();if(!wrap.classList.contains('is-open')){trigger.click();return;}
+       const opts=[...menu.querySelectorAll('.veil-picker__option:not(:disabled)')];if(!opts.length)return;
+       const i=opts.indexOf(document.activeElement);
+       const next=e.key==='Home'?0:e.key==='End'?opts.length-1:e.key==='ArrowUp'?Math.max(0,i-1):Math.min(opts.length-1,i+1);
+       opts[next].focus();
+     }
+   });
    sel.addEventListener('change',update);
-   // Other challenge controls replace the OPTION list dynamically.
-   const optionsObserver=new MutationObserver(update);optionsObserver.observe(sel,{childList:true,subtree:true});
+   new MutationObserver(update).observe(sel,{childList:true,subtree:true,attributes:true,attributeFilter:['disabled']});
    update();
  });
 }
-const veilChallengeRoot=document.getElementById('challenge');
-if(veilChallengeRoot){const observer=new MutationObserver(()=>veilEnhanceChallengeSelectors());observer.observe(veilChallengeRoot,{childList:true,subtree:true});veilEnhanceChallengeSelectors();}
+veilEnhanceAllSelectors();
+let veilPickerScheduled=false;
+new MutationObserver(records=>{
+ if(!records.some(r=>[...r.addedNodes].some(n=>n.nodeType===1&&(n.matches?.('select:not([data-veil-picker])')||n.querySelector?.('select:not([data-veil-picker])')))))return;
+ if(veilPickerScheduled)return;veilPickerScheduled=true;
+ queueMicrotask(()=>{veilPickerScheduled=false;veilEnhanceAllSelectors();});
+}).observe(document.body,{childList:true,subtree:true});
 document.addEventListener('pointerdown',e=>{if(!e.target.closest('.veil-picker'))document.querySelectorAll('.veil-picker.is-open').forEach(w=>{w.classList.remove('is-open');w.querySelector('.veil-picker__menu')?.classList.add('hidden');w.querySelector('.veil-picker__trigger')?.setAttribute('aria-expanded','false');});});
 
 function showSceneReveal(scene){
@@ -1658,3 +1707,5 @@ function veilEnhanceChallengePresentation(){
 const veilChallengePresentationObserver=new MutationObserver(()=>setTimeout(veilEnhanceChallengePresentation,0));
 if(document.getElementById('challenge')){veilChallengePresentationObserver.observe(document.getElementById('challenge'),{childList:true,subtree:true});}
 
+
+window.addEventListener('DOMContentLoaded',initMotion);
