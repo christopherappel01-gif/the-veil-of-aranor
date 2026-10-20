@@ -373,3 +373,11 @@ html[data-motion=enhanced] .map-current{animation-duration:2.5s}
 .motion-settlement .motion-light{opacity:.65}
 .motion-magic .motion-light{opacity:.70}
 html[data-motion=standard] .motion-particles{opacity:.11}
+
+/* V22.2: reliable animated WebP playback instead of browser autoplay. */
+.aranor-motion-picture{display:block;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;opacity:1;pointer-events:none}
+.home-screen .hero-banner--opening .aranor-motion-layer{z-index:2!important}
+.home-screen .hero-banner--opening .hero-banner__content{z-index:4!important}
+.home-screen .hero-banner--opening .hero-banner__overlay{pointer-events:none}
+#sceneArt .aranor-motion-layer{z-index:2!important}
+.home-language-bar #homeMotionToggle{white-space:nowrap}

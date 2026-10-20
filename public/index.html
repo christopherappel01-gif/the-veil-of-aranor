@@ -7,12 +7,12 @@
   <title>The Veil of Aranor</title>
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="apple-touch-icon" href="app-icon.png">
-  <link rel="stylesheet" href="/style.css?v=21-2">
+  <link rel="stylesheet" href="/style.css?v=22-2">
 </head>
 <body>
 <main id="app">
   <section id="home" class="screen home-screen">
-    <div class="home-language-bar"><button class="btn btn-ghost btn-small fullscreen-toggle" type="button">⛶ Fullscreen</button><label for="homeLanguage">🌐 Language</label><select id="homeLanguage" aria-label="Choose language"><option value="en">🇬🇧 English</option><option value="nl">🇳🇱 Nederlands</option><option value="fr">🇫🇷 Français</option><option value="de">🇩🇪 Deutsch</option></select></div>
+    <div class="home-language-bar"><button id="homeMotionToggle" class="btn btn-ghost btn-small" type="button" title="Cycle motion effects">Motion: Standard</button><button class="btn btn-ghost btn-small fullscreen-toggle" type="button">⛶ Fullscreen</button><label for="homeLanguage">🌐 Language</label><select id="homeLanguage" aria-label="Choose language"><option value="en">🇬🇧 English</option><option value="nl">🇳🇱 Nederlands</option><option value="fr">🇫🇷 Français</option><option value="de">🇩🇪 Deutsch</option></select></div>
     <div class="hero-banner hero-banner--opening">
       <div class="hero-banner__overlay"></div>
       <div class="hero-banner__content hero-banner__content--wide">
@@ -291,6 +291,6 @@
 </div>
 <div id="consequenceToast" class="consequence-toast hidden" aria-live="polite"></div>
 <script src="/socket.io/socket.io.js"></script>
-<script src="translations.generated.js"></script><script src="/app.js?v=22-1"></script>
+<script src="translations.generated.js"></script><script src="/app.js?v=22-2"></script>
 </body>
 </html>
