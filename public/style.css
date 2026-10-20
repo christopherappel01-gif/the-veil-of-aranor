@@ -362,3 +362,14 @@ html[data-motion=enhanced] .map-current{animation-duration:2.5s}
 @keyframes aranorMapMist{from{opacity:.96}to{opacity:.86}}
 @keyframes aranorMapPulse{0%,100%{opacity:1}50%{opacity:.47}}
 @media(prefers-reduced-motion:reduce){html:not([data-motion=enhanced]) .map-fog,html:not([data-motion=enhanced]) .map-current{animation:none!important}}
+
+/* V22.1: ensure motion layers actually paint above still artwork. */
+.hero-banner--opening .aranor-motion-layer{z-index:1!important}
+#sceneArt .aranor-motion-layer{z-index:2!important}
+.aranor-motion-video{display:block;visibility:visible;object-fit:cover}
+/* Distinct atmospheric layers without hiding the illustrations. */
+.motion-ruins .motion-mist,.motion-marsh .motion-mist{opacity:.75;filter:blur(20px)}
+.motion-shore .motion-mist{opacity:.42}
+.motion-settlement .motion-light{opacity:.65}
+.motion-magic .motion-light{opacity:.70}
+html[data-motion=standard] .motion-particles{opacity:.11}
