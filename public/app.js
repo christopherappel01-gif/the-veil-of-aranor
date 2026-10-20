@@ -625,13 +625,17 @@ const sceneMotionTypes={
 };
 function configureMotion(){
  document.documentElement.dataset.motion=motionMode;
- const b=document.getElementById('motionToggle'); if(b){b.textContent='Motion: '+motionMode.charAt(0).toUpperCase()+motionMode.slice(1);b.setAttribute('aria-label','Motion effects '+motionMode+'. Click to change.');}
- document.querySelectorAll('.aranor-motion-video').forEach(v=>{if(motionMode==='off'){v.pause();}else{v.muted=true;const p=v.play();if(p&&p.catch)p.catch(()=>{v.dataset.playback='blocked';});}});
+ for(const id of ['motionToggle','homeMotionToggle']){
+  const b=document.getElementById(id);
+  if(b){b.textContent='Motion: '+motionMode.charAt(0).toUpperCase()+motionMode.slice(1);b.setAttribute('aria-label','Motion effects '+motionMode+'. Click to change.');b.setAttribute('aria-pressed',String(motionMode!=='off'));}
+ }
+ document.querySelectorAll('.aranor-motion-video').forEach(v=>{if(motionMode==='off')v.pause();else{v.muted=true;v.play().catch(()=>{v.dataset.playback='blocked';});}});
 }
 function cycleMotion(){motionMode=motionOptions[(motionOptions.indexOf(motionMode)+1)%motionOptions.length];try{localStorage.setItem('aranorMotionMode',motionMode);}catch{}configureMotion();}
 function motionMarkup(kind,landing=false){
  if(!kind)return '';
- return `<div class="aranor-motion-layer motion-${kind}" aria-hidden="true"><div class="motion-mist mist-one"></div><div class="motion-mist mist-two"></div><div class="motion-light"></div><div class="motion-particles"></div>${kind==='sea'?'<video class="aranor-motion-video" autoplay loop muted playsinline preload="auto" poster="/assets/v21_landing.jpg"><source src="/assets/aranor_sea_motion.mp4" type="video/mp4"></video>':''}</div>`;
+ // Animated WebP needs no autoplay permission and works in installed PWAs too.
+ return `<div class="aranor-motion-layer motion-${kind}" aria-hidden="true"><div class="motion-mist mist-one"></div><div class="motion-mist mist-two"></div><div class="motion-light"></div><div class="motion-particles"></div>${kind==='sea'?'<img class="aranor-motion-picture" src="/assets/aranor_sea_motion.webp?v=222" alt="" decoding="async">':''}</div>`;
 }
 function renderSceneMotion(scene){
  const el=document.getElementById('sceneArt');if(!el)return;
@@ -643,7 +647,7 @@ function renderSceneMotion(scene){
  configureMotion();
 }
 function installLandingMotion(){const b=document.querySelector('.hero-banner--opening');if(!b)return;if(!b.querySelector('.aranor-motion-layer')){const w=document.createElement('div');w.innerHTML=motionMarkup('sea',true);b.insertBefore(w.firstElementChild,b.firstChild);}configureMotion();}
-function initMotion(){const b=document.getElementById('motionToggle');if(b)b.onclick=cycleMotion;installLandingMotion();configureMotion();}
+function initMotion(){for(const id of ['motionToggle','homeMotionToggle']){const b=document.getElementById(id);if(b)b.onclick=cycleMotion;}installLandingMotion();configureMotion();}
 // Avoid changing read-aloud content or interactive gameplay while animating backgrounds.
 
 function renderGame(){
