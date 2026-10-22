@@ -611,50 +611,10 @@ const classNarrativeInsights={
  Monk:{troll:'The creature’s fear is stronger than its anger.',marsh_lights:'The voices take the shape of private regrets, not reliable memories.',heart_vision:'A familiar voice could reach the trapped hero.',final_cost:'Sacrifice is a choice to be shared, not imposed on the nearest hero.'},
  Engineer:{storm:'The ship was struck by a solid object before the great wave.',green_gate:'The stone doors are a living machine with counterweights.',echo_chamber:'The mural conceals the track of the closing doors.',mountain_gate:'The sealed road was built with a second service route.',last_beacon:'The controls have three configurations, each distributing power differently.'}
 };
-
-// V22 subtle motion system. No game state is changed by ambient motion.
-const motionOptions=['off','standard','enhanced'];
-const motionReduced=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches||false;
-let motionMode=(()=>{try{const stored=localStorage.getItem('aranorMotionMode');return motionOptions.includes(stored)?stored:(motionReduced?'off':'standard');}catch{return motionReduced?'off':'standard';}})();
-const sceneMotionTypes={
- intro:'sea',deck_pause:'sea',storm:'storm',after_storm:'storm',wave:'storm',undercliff_wreck:'shore',wreck:'shore',wreck_fire:'shore',shore_camp:'shore',shore_rest:'shore',smoke_shore:'shore',
- road:'forest',green_gate:'ruins',survivor_camp:'ruins',whisper_ruins:'ruins',six_mural:'magic',quiet_fire:'ruins',root_tunnels:'ruins',
- marsh_route:'marsh',reed_islands:'marsh',moon_pool:'marsh',marsh_shelter:'marsh',marsh_lights:'marsh',lost_marsh:'marsh',marsh_night:'marsh',
- council:'settlement',serayne_hub:'settlement',goblin_border:'forest',medicine_choice:'settlement',
- heart_chamber:'magic',heart_vision:'magic',heart_truth:'magic',mountain_gate:'magic',mirror_vault:'magic',last_beacon:'magic',final_cost:'magic',beacon_keeper:'magic'
-};
-function configureMotion(){
- document.documentElement.dataset.motion=motionMode;
- document.querySelectorAll('.aranor-motion-picture').forEach(img=>{const scene=img.dataset.scene==='landing'?'landing':'opening';const src='/assets/aranor_'+scene+'_water_'+(motionMode==='enhanced'?'enhanced':'standard')+'.webp?v=224';if(img.getAttribute('src')!==src)img.setAttribute('src',src);});
- for(const id of ['motionToggle','homeMotionToggle']){
-  const b=document.getElementById(id);
-  if(b){b.textContent='Motion: '+motionMode.charAt(0).toUpperCase()+motionMode.slice(1);b.setAttribute('aria-label','Motion effects '+motionMode+'. Click to change.');b.setAttribute('aria-pressed',String(motionMode!=='off'));}
- }
- document.querySelectorAll('.aranor-motion-video').forEach(v=>{if(motionMode==='off')v.pause();else{v.muted=true;v.play().catch(()=>{v.dataset.playback='blocked';});}});
-}
-function cycleMotion(){motionMode=motionOptions[(motionOptions.indexOf(motionMode)+1)%motionOptions.length];try{localStorage.setItem('aranorMotionMode',motionMode);}catch{}configureMotion();}
-function motionMarkup(kind,landing=false){
- if(!kind)return '';
- // Animated WebP needs no autoplay permission and works in installed PWAs too.
- return `<div class="aranor-motion-layer motion-${kind}" aria-hidden="true"><div class="motion-mist mist-one"></div><div class="motion-mist mist-two"></div><div class="motion-light"></div><div class="motion-particles"></div>${kind==='sea'?'<img class="aranor-motion-picture" data-scene="'+(landing?'landing':'opening')+'" src="/assets/aranor_'+(landing?'landing':'opening')+'_water_standard.webp?v=224" alt="" decoding="async">':''}</div>`;
-}
-function renderSceneMotion(scene){
- const el=document.getElementById('sceneArt');if(!el)return;
- const kind=sceneMotionTypes[scene]||'';
- const existing=el.querySelector('.aranor-motion-layer');
- if(existing?.classList.contains('motion-'+kind)){configureMotion();return;}
- existing?.remove();
- if(kind){const wrap=document.createElement('div');wrap.innerHTML=motionMarkup(kind);el.insertBefore(wrap.firstElementChild,el.firstChild);}
- configureMotion();
-}
-function installLandingMotion(){const b=document.querySelector('.hero-banner--opening');if(!b)return;if(!b.querySelector('.aranor-motion-layer')){const w=document.createElement('div');w.innerHTML=motionMarkup('sea',true);b.insertBefore(w.firstElementChild,b.firstChild);}configureMotion();}
-function initMotion(){for(const id of ['motionToggle','homeMotionToggle']){const b=document.getElementById(id);if(b)b.onclick=cycleMotion;}installLandingMotion();configureMotion();}
-// Avoid changing read-aloud content or interactive gameplay while animating backgrounds.
-
 function renderGame(){
   show('game');const sc=scenes[state.scene];if(!sc)return;updateAmbience(state.scene);renderVoiceUi();syncVoicePeers();
   $('sceneTitle').textContent=sc.title;$('sceneText').innerHTML=sc.text.map(x=>`<p>${x}</p>`).join('')+(state.scene==='intro'?openingCompanyHtml():'');$('mission').textContent=sc.mission;const bridge=$('storyBridge');if(bridge){if(pendingStoryBridge&&pendingStoryBridge.scene===state.scene){bridge.innerHTML=`<p>${esc(pendingStoryBridge.text)}</p>`;bridge.classList.remove('hidden');}else bridge.classList.add('hidden');}
-  const art=sceneArt[state.scene]||['🧭',sc.title],image=sceneImages[state.scene]||'assets/lost_home.jpg';const [icon,caption]=art;$('sceneArt').className=`scene-art ${state.scene}`;$('sceneArt').style.backgroundImage=`url('${image}')`;$('sceneArt').querySelector('.scene-art__caption').textContent=caption;renderSceneMotion(state.scene);renderNpcMoment(state.scene);renderFinaleCallbacks(state.scene);renderQualityPanels(state.scene);
+  const art=sceneArt[state.scene]||['🧭',sc.title],image=sceneImages[state.scene]||'assets/lost_home.jpg';const [icon,caption]=art;$('sceneArt').className=`scene-art ${state.scene}`;$('sceneArt').style.backgroundImage=`url('${image}')`;$('sceneArt').querySelector('.scene-art__caption').textContent=caption;renderNpcMoment(state.scene);renderFinaleCallbacks(state.scene);renderQualityPanels(state.scene);
   $('round').textContent=state.round;$('hope').textContent=state.hope;$('threat').textContent=state.threat;$('supplies').textContent=state.supplies;$('relics').textContent=state.relics;if($('coin'))$('coin').textContent=state.coin||0;if($('pressureNote')){$('pressureNote').textContent=threatStatusText(state.threat);$('pressureNote').className='pressure-note '+(state.threat>=5?'high':state.threat>=3?'mid':'low');}
   const active=state.players[state.activeIndex],mine=active?.id===me,waiting=(state.groups||[]).find(g=>g.id===state.currentGroupId)?.waitingMerge;$('turnNotice').className='turn-notice'+(mine?' mine':'');$('turnNotice').innerHTML=waiting?`<b>${esc(state.currentGroupName||'Your group')} has reached the rendezvous.</b> The other group is still on its route.`:mine?`<b>Your turn, ${esc(active.name)}.</b> Choose what your hero does next.${state.groups?.length>1?` <span class="group-badge">${esc(state.currentGroupName)}</span>`:''}`:`Waiting for <b>${esc(active?.name||'')}</b>${state.groups?.length>1?` · ${esc((state.groups||[]).find(g=>(g.playerIds||[]).includes(active?.id))?.name||'another group')}`:''}.`;
   $('choices').innerHTML=''; if(!state.pending){const extra=specialistChoiceSets[state.scene]?.[active?.cls];const actionChoices=extra?[...sc.choices,extra]:sc.choices;actionChoices.forEach(choice=>{const [id,label,note]=choice,available=requirementSatisfied(choice)&&(!id.startsWith('spell_')||(active?.milestone||0)>=1&&(active?.energy||0)>=(id==='spell_seal'?2:1));const b=document.createElement('button');b.className='choice';b.disabled=!mine||!available;b.innerHTML=`<b>${label}</b><span>${note}${available?'':' · NOT CURRENTLY AVAILABLE'}</span>`;b.onclick=()=>socket.emit('chooseAction',{action:id});$('choices').appendChild(b);});}
@@ -1712,5 +1672,3 @@ function veilEnhanceChallengePresentation(){
 const veilChallengePresentationObserver=new MutationObserver(()=>setTimeout(veilEnhanceChallengePresentation,0));
 if(document.getElementById('challenge')){veilChallengePresentationObserver.observe(document.getElementById('challenge'),{childList:true,subtree:true});}
 
-
-if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',initMotion,{once:true});}else{initMotion();}
