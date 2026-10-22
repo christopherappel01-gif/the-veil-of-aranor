@@ -625,7 +625,7 @@ const sceneMotionTypes={
 };
 function configureMotion(){
  document.documentElement.dataset.motion=motionMode;
- document.querySelectorAll('.aranor-motion-picture').forEach(img=>{const src='/assets/aranor_sea_motion_'+(motionMode==='enhanced'?'enhanced':'standard')+'.webp?v=223';if(img.getAttribute('src')!==src)img.setAttribute('src',src);});
+ document.querySelectorAll('.aranor-motion-picture').forEach(img=>{const scene=img.dataset.scene==='landing'?'landing':'opening';const src='/assets/aranor_'+scene+'_water_'+(motionMode==='enhanced'?'enhanced':'standard')+'.webp?v=224';if(img.getAttribute('src')!==src)img.setAttribute('src',src);});
  for(const id of ['motionToggle','homeMotionToggle']){
   const b=document.getElementById(id);
   if(b){b.textContent='Motion: '+motionMode.charAt(0).toUpperCase()+motionMode.slice(1);b.setAttribute('aria-label','Motion effects '+motionMode+'. Click to change.');b.setAttribute('aria-pressed',String(motionMode!=='off'));}
@@ -636,7 +636,7 @@ function cycleMotion(){motionMode=motionOptions[(motionOptions.indexOf(motionMod
 function motionMarkup(kind,landing=false){
  if(!kind)return '';
  // Animated WebP needs no autoplay permission and works in installed PWAs too.
- return `<div class="aranor-motion-layer motion-${kind}" aria-hidden="true"><div class="motion-mist mist-one"></div><div class="motion-mist mist-two"></div><div class="motion-light"></div><div class="motion-particles"></div>${kind==='sea'?'<img class="aranor-motion-picture" src="/assets/aranor_sea_motion_standard.webp?v=223" alt="" decoding="async">':''}</div>`;
+ return `<div class="aranor-motion-layer motion-${kind}" aria-hidden="true"><div class="motion-mist mist-one"></div><div class="motion-mist mist-two"></div><div class="motion-light"></div><div class="motion-particles"></div>${kind==='sea'?'<img class="aranor-motion-picture" data-scene="'+(landing?'landing':'opening')+'" src="/assets/aranor_'+(landing?'landing':'opening')+'_water_standard.webp?v=224" alt="" decoding="async">':''}</div>`;
 }
 function renderSceneMotion(scene){
  const el=document.getElementById('sceneArt');if(!el)return;
