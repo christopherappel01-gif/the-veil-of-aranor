@@ -354,14 +354,14 @@ html[data-motion=enhanced] .motion-mist{opacity:.76}
 html[data-motion=enhanced] .motion-light{animation-duration:5s}
 html[data-motion=enhanced] .motion-particles{opacity:.20}
 /* In Standard mode imagery stays largely unobscured; other elements stay static. */
-@media(prefers-reduced-motion:reduce){html:not([data-motion=enhanced]) .aranor-motion-layer{display:none!important}}
+/* Explicit Motion choice overrides OS preference. The initial default remains Off if reduced motion is requested. */
 /* Moving fog-of-war and objective highlight: map markers stay readable */
 html:not([data-motion=off]) .map-fog{animation:aranorMapMist 28s ease-in-out infinite alternate;transform-origin:center}
 html:not([data-motion=off]) .map-current{animation:aranorMapPulse 3.8s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
 html[data-motion=enhanced] .map-current{animation-duration:2.5s}
 @keyframes aranorMapMist{from{opacity:.96}to{opacity:.86}}
 @keyframes aranorMapPulse{0%,100%{opacity:1}50%{opacity:.47}}
-@media(prefers-reduced-motion:reduce){html:not([data-motion=enhanced]) .map-fog,html:not([data-motion=enhanced]) .map-current{animation:none!important}}
+/* Explicit Standard and Enhanced selections also permit map ambience. */
 
 /* V22.1: ensure motion layers actually paint above still artwork. */
 .hero-banner--opening .aranor-motion-layer{z-index:1!important}
@@ -381,3 +381,13 @@ html[data-motion=standard] .motion-particles{opacity:.11}
 .home-screen .hero-banner--opening .hero-banner__overlay{pointer-events:none}
 #sceneArt .aranor-motion-layer{z-index:2!important}
 .home-language-bar #homeMotionToggle{white-space:nowrap}
+
+/* V22.3: calibrated visible Standard and restrained Enhanced */
+html[data-motion=standard] .motion-mist{opacity:.42!important}
+html[data-motion=enhanced] .motion-mist{opacity:.53!important}
+html[data-motion=standard] .motion-light{opacity:.19!important}
+html[data-motion=enhanced] .motion-light{opacity:.27!important}
+html[data-motion=standard] .motion-particles{opacity:.07!important}
+html[data-motion=enhanced] .motion-particles{opacity:.11!important}
+html[data-motion=standard] .motion-storm .motion-light{opacity:.14!important}
+html[data-motion=enhanced] .motion-storm .motion-light{opacity:.22!important}
