@@ -7,12 +7,12 @@
   <title>The Veil of Aranor</title>
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="apple-touch-icon" href="app-icon.png">
-  <link rel="stylesheet" href="/style.css?v=22-3">
+  <link rel="stylesheet" href="/style.css?v=22-5-static">
 </head>
 <body>
 <main id="app">
   <section id="home" class="screen home-screen">
-    <div class="home-language-bar"><button id="homeMotionToggle" class="btn btn-ghost btn-small" type="button" title="Cycle motion effects">Motion: Standard</button><button class="btn btn-ghost btn-small fullscreen-toggle" type="button">⛶ Fullscreen</button><label for="homeLanguage">🌐 Language</label><select id="homeLanguage" aria-label="Choose language"><option value="en">🇬🇧 English</option><option value="nl">🇳🇱 Nederlands</option><option value="fr">🇫🇷 Français</option><option value="de">🇩🇪 Deutsch</option></select></div>
+    <div class="home-language-bar"><button class="btn btn-ghost btn-small fullscreen-toggle" type="button">⛶ Fullscreen</button><label for="homeLanguage">🌐 Language</label><select id="homeLanguage" aria-label="Choose language"><option value="en">🇬🇧 English</option><option value="nl">🇳🇱 Nederlands</option><option value="fr">🇫🇷 Français</option><option value="de">🇩🇪 Deutsch</option></select></div>
     <div class="hero-banner hero-banner--opening">
       <div class="hero-banner__overlay"></div>
       <div class="hero-banner__content hero-banner__content--wide">
@@ -202,7 +202,7 @@
       <button class="btn btn-ghost btn-small menuBtn" type="button">← Main Menu</button>
       <div class="game-heading"><div class="eyebrow">THE VEIL OF ARANOR</div><h1 id="sceneTitle">The Resolute</h1></div>
       <div class="game-status">
-        <div class="sound-row"><button id="journalBtn" class="btn btn-ghost btn-small" type="button">📖 Journal</button> <button id="recapBtn" class="btn btn-ghost btn-small" type="button">↺ Recap</button> <button class="btn btn-ghost btn-small access-help-trigger" type="button">? Help</button> <div class="language-control"><button id="languageBtn" class="btn btn-ghost btn-small" type="button" aria-haspopup="true" aria-expanded="false">⚑ Language ▾</button><div id="languageMenu" class="language-menu hidden" role="menu"><button type="button" data-lang="en" role="menuitemradio">🇬🇧 English</button><button type="button" data-lang="nl" role="menuitemradio">🇳🇱 Nederlands</button><button type="button" data-lang="fr" role="menuitemradio">🇫🇷 Français</button><button type="button" data-lang="de" role="menuitemradio">🇩🇪 Deutsch</button></div></div> <button id="soundToggle" class="btn btn-ghost btn-small" type="button">🔊 SFX on</button> <button class="btn btn-ghost btn-small fullscreen-toggle" type="button">⛶ Fullscreen</button> <button id="motionToggle" class="btn btn-ghost btn-small" type="button" title="Cycle ambient motion: off, standard, enhanced">Motion: Standard</button> <button id="ambientToggle" class="btn btn-ghost btn-small" type="button">🌿 Ambience on</button></div>
+        <div class="sound-row"><button id="journalBtn" class="btn btn-ghost btn-small" type="button">📖 Journal</button> <button id="recapBtn" class="btn btn-ghost btn-small" type="button">↺ Recap</button> <button class="btn btn-ghost btn-small access-help-trigger" type="button">? Help</button> <div class="language-control"><button id="languageBtn" class="btn btn-ghost btn-small" type="button" aria-haspopup="true" aria-expanded="false">⚑ Language ▾</button><div id="languageMenu" class="language-menu hidden" role="menu"><button type="button" data-lang="en" role="menuitemradio">🇬🇧 English</button><button type="button" data-lang="nl" role="menuitemradio">🇳🇱 Nederlands</button><button type="button" data-lang="fr" role="menuitemradio">🇫🇷 Français</button><button type="button" data-lang="de" role="menuitemradio">🇩🇪 Deutsch</button></div></div> <button id="soundToggle" class="btn btn-ghost btn-small" type="button">🔊 SFX on</button> <button class="btn btn-ghost btn-small fullscreen-toggle" type="button">⛶ Fullscreen</button> <button id="ambientToggle" class="btn btn-ghost btn-small" type="button">🌿 Ambience on</button></div>
         <div class="room-mini">Room <strong id="gameRoom"></strong> · Your Return PIN <strong id="returnPinGame">----</strong></div>
         <div class="status-row"><span>Round <b id="round"></b></span><span>Hope <b id="hope"></b>/6</span><span>Threat <b id="threat"></b>/6</span></div>
       </div>
@@ -291,6 +291,6 @@
 </div>
 <div id="consequenceToast" class="consequence-toast hidden" aria-live="polite"></div>
 <script src="/socket.io/socket.io.js"></script>
-<script src="translations.generated.js"></script><script src="/app.js?v=22-3"></script>
+<script src="translations.generated.js"></script><script src="/app.js?v=22-5-static"></script>
 </body>
 </html>
