@@ -11,29 +11,6 @@ const io = new Server(server, { pingTimeout: 20000, pingInterval: 10000 });
 const PORT = process.env.PORT || 3000;
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('/health', (req, res) => res.status(200).send('ok'));
-// Optional professional translation provider. A DeepL key enables complete dynamic
-// narrative/interface translation. Do not transmit players' names, PINs or messages.
-app.use(express.json({limit:'60kb'}));
-const translationCache=new Map();
-app.post('/api/translate',async(req,res)=>{
-  const lang=req.body?.lang,strings=req.body?.texts;
-  if(!['nl','fr','de'].includes(lang)||!Array.isArray(strings)||strings.length>35||strings.some(t=>typeof t!=='string'||t.length>2600))return res.status(400).json({error:'Invalid translation request'});
-  const key=process.env.DEEPL_AUTH_KEY;
-  if(!key)return res.status(503).json({error:'Translation service not configured'});
-  const endpoint=process.env.DEEPL_API_URL||(key.endsWith(':fx')?'https://api-free.deepl.com/v2/translate':'https://api.deepl.com/v2/translate');
-  try{
-    const missing=[...new Set(strings.filter(t=>!translationCache.has(lang+'|'+t)))];
-    if(missing.length){const body=new URLSearchParams();body.set('target_lang',lang.toUpperCase());body.set('source_lang','EN');for(const t of missing)body.append('text',t);
-      const response=await fetch(endpoint,{method:'POST',headers:{'Authorization':'DeepL-Auth-Key '+key,'Content-Type':'application/x-www-form-urlencoded'},body,signal:AbortSignal.timeout(12000)});
-      if(!response.ok)throw Error('Translation provider status '+response.status);
-      const data=await response.json();if(!data.translations||data.translations.length!==missing.length)throw Error('Unexpected translation response');
-      missing.forEach((t,i)=>translationCache.set(lang+'|'+t,data.translations[i].text));if(translationCache.size>10000)translationCache.clear();
-    }
-    res.json({texts:strings.map(t=>translationCache.get(lang+'|'+t)||t)});
-  }catch(err){res.status(502).json({error:'Translation provider unavailable'});}
-});
-
-
 const rooms = new Map();
 const classes = ['Knight','Ranger','Thief','Mage','Monk','Engineer'];
 const skills = ['Strength','Agility','Endurance','Awareness','Survival','Stealth','Knowledge','Craft','Influence','Spirit','Arcana'];

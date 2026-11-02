@@ -7,7 +7,7 @@
   <title>The Veil of Aranor</title>
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="apple-touch-icon" href="app-icon.png">
-  <link rel="stylesheet" href="/style.css?v=22-5-static">
+  <link rel="stylesheet" href="/style.css?v=229-clean">
 </head>
 <body>
 <main id="app">
@@ -212,8 +212,8 @@
       <section class="panel story-panel">
         <div id="sceneArt" class="scene-art" role="img" aria-label="Story scene illustration"><div class="scene-art__caption"></div></div><div id="sceneKindBadge" class="scene-kind"></div><div id="passiveInsight" class="passive-insight hidden"></div><div id="itemCallback" class="item-callback hidden"></div><div id="battleState" class="battle-state hidden"></div><div id="npcMoment" class="npc-moment hidden"></div><div id="callbackPanel" class="callback-panel hidden"></div>
         <div id="storyBridge" class="story-bridge hidden"></div>
-        <div id="sceneText" class="story"></div>
-        <div id="turnNotice" class="turn-notice"></div>
+        <div id="playtestProgress" class="playtest-progress" aria-live="polite"></div><div id="sceneText" class="story"></div>
+        <div id="turnNotice" class="turn-notice"></div><div id="playtestTeamHint" class="playtest-hint" aria-live="polite"></div>
         <div id="choices" class="choice-list"></div>
         <div id="challenge" class="hidden"></div>
         <div id="rollResult"></div>
@@ -221,7 +221,7 @@
       </section>
 
       <aside class="sidebar">
-        <section class="panel mini-hero-panel" aria-labelledby="miniHeroHeading">
+        <section class="panel playtest-quick-panel"><div class="eyebrow" data-i18n="guideTitle">PLAYTEST GUIDE</div><button id="playtestHelpButton" class="btn btn-ghost btn-small full" type="button" data-i18n="guideButton">How to play · 5 minutes</button><button id="playtestFeedbackButton" class="btn btn-ghost btn-small full" type="button" data-i18n="feedbackButton">Give playtest feedback</button></section><section class="panel mini-hero-panel" aria-labelledby="miniHeroHeading">
           <div class="eyebrow">YOUR CHARACTER</div>
           <div id="miniHeroBody" aria-live="polite"><p class="small muted">Your hero will appear here when the adventure starts.</p></div>
           <button id="miniHeroOpen" class="btn btn-ghost btn-small full" type="button">Open Hero Sheet →</button>
@@ -261,6 +261,7 @@
     </div>
   </section>
 </main>
+<div id="playtestFeedbackModal" class="hero-sheet-modal hidden" role="dialog" aria-modal="true" aria-labelledby="playtestFeedbackTitle"><div class="hero-sheet-card playtest-feedback-card"><div class="hero-sheet-head"><h2 id="playtestFeedbackTitle"></h2><button type="button" id="playtestFeedbackClose" class="btn btn-ghost btn-small"></button></div><p id="playtestFeedbackIntro" class="small muted"></p><label id="playtestPaceLabel" for="playtestPace"></label><select id="playtestPace"><option value="1">1 / 5</option><option value="2">2 / 5</option><option value="3" selected>3 / 5</option><option value="4">4 / 5</option><option value="5">5 / 5</option></select><label id="playtestClarityLabel" for="playtestClarity"></label><select id="playtestClarity"><option value="1">1 / 5</option><option value="2">2 / 5</option><option value="3" selected>3 / 5</option><option value="4">4 / 5</option><option value="5">5 / 5</option></select><label id="playtestFunLabel" for="playtestFun"></label><select id="playtestFun"><option value="1">1 / 5</option><option value="2">2 / 5</option><option value="3" selected>3 / 5</option><option value="4">4 / 5</option><option value="5">5 / 5</option></select><label id="playtestCommentLabel" for="playtestComment"></label><textarea id="playtestComment" rows="4" maxlength="1000"></textarea><div class="playtest-actions"><button id="playtestCopyFeedback" type="button" class="btn btn-primary"></button><button id="playtestFeedbackDone" type="button" class="btn btn-ghost"></button></div><p id="playtestFeedbackStatus" aria-live="polite" class="small muted"></p></div></div>
 <div id="accessHelpModal" class="hero-sheet-modal hidden" role="dialog" aria-modal="true" aria-labelledby="accessHelpTitle"><div class="hero-sheet-card access-help-card"><div class="hero-sheet-head"><div><div class="eyebrow">QUICK START</div><h2 id="accessHelpTitle">How to Play</h2></div><button id="accessHelpClose" type="button" class="btn btn-ghost btn-small">Close</button></div><div id="accessHelpBody" class="access-help-body"></div><button id="accessHelpDone" type="button" class="btn btn-primary">Let's go!</button></div></div>
 <div id="heroSheetModal" class="hero-sheet-modal hidden" role="dialog" aria-modal="true" aria-labelledby="heroSheetTitle">
   <div class="hero-sheet-card">
@@ -291,6 +292,6 @@
 </div>
 <div id="consequenceToast" class="consequence-toast hidden" aria-live="polite"></div>
 <script src="/socket.io/socket.io.js"></script>
-<script src="translations.generated.js"></script><script src="/app.js?v=22-5-static"></script>
+<script src="translations.generated.js?v=229-clean"></script><script src="/app.js?v=229-clean"></script>
 </body>
 </html>
