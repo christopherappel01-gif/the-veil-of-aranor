@@ -1,0 +1,947 @@
+[
+  {
+    "file": "aranor_map_bg.jpg",
+    "size": [
+      1400,
+      1008
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "beacon_v6.jpg",
+    "size": [
+      1672,
+      941
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "caves_v6.jpg",
+    "size": [
+      1672,
+      941
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "chest.jpg",
+    "size": [
+      900,
+      506
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "coast_v6.jpg",
+    "size": [
+      1600,
+      900
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "consequence.jpg",
+    "size": [
+      900,
+      506
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "engineer_1.jpg",
+    "size": [
+      366,
+      498
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "engineer_2.jpg",
+    "size": [
+      366,
+      498
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "engineer_3.jpg",
+    "size": [
+      366,
+      498
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "engineer_4.jpg",
+    "size": [
+      366,
+      498
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "exp_camp.jpg",
+    "size": [
+      1672,
+      941
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "exp_heart.jpg",
+    "size": [
+      1672,
+      941
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "exp_jungle.jpg",
+    "size": [
+      1672,
+      941
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "exp_marsh.jpg",
+    "size": [
+      1672,
+      941
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "exp_prologue.jpg",
+    "size": [
+      1672,
+      941
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "exp_ridge.jpg",
+    "size": [
+      1672,
+      941
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "exp_rootway.jpg",
+    "size": [
+      1672,
+      941
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "exp_shipwreck.jpg",
+    "size": [
+      1672,
+      941
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "exp_whitecity.jpg",
+    "size": [
+      1672,
+      941
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "forest_v6.jpg",
+    "size": [
+      1672,
+      941
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "green_court_v6.jpg",
+    "size": [
+      1600,
+      900
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "green_ruins_bespoke.jpg",
+    "size": [
+      1672,
+      941
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "green_ruins_v6.jpg",
+    "size": [
+      1672,
+      941
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "heart_v6.jpg",
+    "size": [
+      1672,
+      941
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "keep_v6.jpg",
+    "size": [
+      1600,
+      900
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "knight_1.jpg",
+    "size": [
+      366,
+      498
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "knight_2.jpg",
+    "size": [
+      366,
+      498
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "knight_3.jpg",
+    "size": [
+      366,
+      498
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "knight_4.jpg",
+    "size": [
+      366,
+      498
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "lost_home.jpg",
+    "size": [
+      1672,
+      941
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "lost_opening_v6.jpg",
+    "size": [
+      1672,
+      941
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "mage_1.jpg",
+    "size": [
+      366,
+      498
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "mage_2.jpg",
+    "size": [
+      366,
+      498
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "mage_3.jpg",
+    "size": [
+      366,
+      498
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "mage_4.jpg",
+    "size": [
+      366,
+      498
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "marsh_v6.jpg",
+    "size": [
+      1672,
+      941
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "monk_1.jpg",
+    "size": [
+      366,
+      498
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "monk_2.jpg",
+    "size": [
+      366,
+      498
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "monk_3.jpg",
+    "size": [
+      366,
+      498
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "monk_4.jpg",
+    "size": [
+      366,
+      498
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "mountain_gate_bespoke.jpg",
+    "size": [
+      1672,
+      941
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "mountain_v6.jpg",
+    "size": [
+      1672,
+      941
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "mural_six_bespoke.jpg",
+    "size": [
+      1672,
+      941
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "mural_v6.jpg",
+    "size": [
+      1600,
+      900
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "npc_nim.jpg",
+    "size": [
+      300,
+      460
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "npc_serayne.jpg",
+    "size": [
+      305,
+      460
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "npc_thorne.jpg",
+    "size": [
+      302,
+      460
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "npc_vael.jpg",
+    "size": [
+      305,
+      460
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "npc_veyra.jpg",
+    "size": [
+      305,
+      460
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "order_landing_bespoke.jpg",
+    "size": [
+      1672,
+      941
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "order_v6.jpg",
+    "size": [
+      1600,
+      900
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "portraits.jpg",
+    "size": [
+      900,
+      506
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "quarry_v6.jpg",
+    "size": [
+      1600,
+      900
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "random.jpg",
+    "size": [
+      900,
+      506
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "ranger_1.jpg",
+    "size": [
+      366,
+      498
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "ranger_2.jpg",
+    "size": [
+      366,
+      498
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "ranger_3.jpg",
+    "size": [
+      366,
+      498
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "ranger_4.jpg",
+    "size": [
+      366,
+      498
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "ridge_v6.jpg",
+    "size": [
+      1672,
+      941
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "river_v6.jpg",
+    "size": [
+      1600,
+      900
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "road_v6.jpg",
+    "size": [
+      1672,
+      941
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "serayne_council_bespoke.jpg",
+    "size": [
+      1672,
+      941
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "siege_v6.jpg",
+    "size": [
+      1600,
+      900
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "storm.jpg",
+    "size": [
+      1672,
+      941
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "storm_v6.jpg",
+    "size": [
+      1672,
+      941
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "thief_1.jpg",
+    "size": [
+      366,
+      498
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "thief_2.jpg",
+    "size": [
+      366,
+      498
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "thief_3.jpg",
+    "size": [
+      366,
+      498
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "thief_4.jpg",
+    "size": [
+      366,
+      498
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "thorne_v6.jpg",
+    "size": [
+      1600,
+      900
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "troll.jpg",
+    "size": [
+      1672,
+      941
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "troll_v6.jpg",
+    "size": [
+      1672,
+      941
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "v16_answering_stone.jpg",
+    "size": [
+      1672,
+      941
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "v16_archive_night.jpg",
+    "size": [
+      1672,
+      941
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "v16_ash_canyon.jpg",
+    "size": [
+      1672,
+      941
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "v16_ash_prison.jpg",
+    "size": [
+      1672,
+      941
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "v16_goblin_capture.jpg",
+    "size": [
+      1672,
+      941
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "v16_heart_vision.jpg",
+    "size": [
+      1672,
+      941
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "v16_marsh_lights.jpg",
+    "size": [
+      1672,
+      941
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "v16_mirror_vault.jpg",
+    "size": [
+      1672,
+      941
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "v16_thorne_flees.jpg",
+    "size": [
+      1672,
+      941
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "v16_wolf_ring.jpg",
+    "size": [
+      1672,
+      941
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "v21_ash_archive.jpg",
+    "size": [
+      1600,
+      900
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "v21_ash_prison.jpg",
+    "size": [
+      1600,
+      900
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "v21_beacon_betrayal.jpg",
+    "size": [
+      1600,
+      900
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "v21_camp_sea.jpg",
+    "size": [
+      1600,
+      900
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "v21_cliffside_ruins.jpg",
+    "size": [
+      1600,
+      900
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "v21_goblin_camp.jpg",
+    "size": [
+      1600,
+      900
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "v21_heart_vision.jpg",
+    "size": [
+      1600,
+      900
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "v21_jungle_road.jpg",
+    "size": [
+      1600,
+      900
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "v21_landing.jpg",
+    "size": [
+      1672,
+      941
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "v21_marsh_moon.jpg",
+    "size": [
+      1600,
+      900
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "v21_mirror_vault.jpg",
+    "size": [
+      1600,
+      900
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "v21_mountain_gate.jpg",
+    "size": [
+      1600,
+      900
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "v21_ruined_gorge.jpg",
+    "size": [
+      1600,
+      900
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "v21_shipwreck_dawn.jpg",
+    "size": [
+      1600,
+      900
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "v21_stormbound_cliffs.jpg",
+    "size": [
+      1600,
+      900
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "v21_troll_guardian.jpg",
+    "size": [
+      1600,
+      900
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "v21_white_city.jpg",
+    "size": [
+      1600,
+      900
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "v21_wolf_ring.jpg",
+    "size": [
+      1600,
+      900
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "v21_worldheart.jpg",
+    "size": [
+      1600,
+      900
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "watchtower_ambush_v18.jpg",
+    "size": [
+      1672,
+      941
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "white_city_finale_bespoke.jpg",
+    "size": [
+      1672,
+      941
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "white_city_v6.jpg",
+    "size": [
+      1672,
+      941
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  },
+  {
+    "file": "wreck_coast_v6.jpg",
+    "size": [
+      1672,
+      941
+    ],
+    "embedded_text_status": "visual review required",
+    "metadata_text": {}
+  }
+]

@@ -1,0 +1,25 @@
+# Nederlandse terminologie (België)
+
+- party / company: gezelschap
+- hero: held
+- class: klasse
+- skill: vaardigheid
+- skill check: vaardigheidsproef
+- Hope: Hoop
+- Supplies: Voorraad
+- Threat: Dreiging
+- round: ronde
+- turn: beurt
+- assist: helpen / ondersteunen
+- camp: kamp
+- Order of Ash: Orde van de As
+- Green Court: Groene Hof
+- Heart of Aranor: Hart van Aranor
+- beacon: baken
+- Knight: Ridder
+- Ranger: Verkenner
+- Thief: Dief
+- Mage: Magiër
+- Monk: Monnik
+- Engineer: Ingenieur
+- Keep personal names Aranor, Serayne, Thorne, Veyra, Vael and ship name Resolute unchanged.

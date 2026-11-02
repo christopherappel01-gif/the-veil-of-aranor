@@ -1,0 +1,9 @@
+{
+  "scope": "Primary statically declared scene text, titles, objectives and choices. Extra scenes appended via Object.assign and dynamic server text are not included.",
+  "scenes": 65,
+  "fields": 583,
+  "translated": 583,
+  "missing": 0,
+  "coverage_percent": 100,
+  "missingExamples": []
+}

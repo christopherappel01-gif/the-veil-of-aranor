@@ -611,13 +611,46 @@ const classNarrativeInsights={
  Monk:{troll:'The creature’s fear is stronger than its anger.',marsh_lights:'The voices take the shape of private regrets, not reliable memories.',heart_vision:'A familiar voice could reach the trapped hero.',final_cost:'Sacrifice is a choice to be shared, not imposed on the nearest hero.'},
  Engineer:{storm:'The ship was struck by a solid object before the great wave.',green_gate:'The stone doors are a living machine with counterweights.',echo_chamber:'The mural conceals the track of the closing doors.',mountain_gate:'The sealed road was built with a second service route.',last_beacon:'The controls have three configurations, each distributing power differently.'}
 };
+// V22.8: canonical scene text comes from immutable English definitions and an
+// explicit locale table. No DOM observation is needed for these game fields.
+function sceneLocaleText(source, lang=selectedLanguage){
+ if(lang==='en'||source==null)return source;
+ const dictionary=(window.LOST_EXPEDITION_I18N||{})[lang]||{};
+ return dictionary[source]||source;
+}
+function localizedScene(sceneId,lang=selectedLanguage){
+ const source=scenes[sceneId];if(!source)return null;
+ const translate=v=>sceneLocaleText(v,lang);
+ return {...source,title:translate(source.title),mission:translate(source.mission),
+  text:(source.text||[]).map(translate),
+  choices:(source.choices||[]).map(([id,label,note,...rest])=>[id,translate(label),translate(note),...rest])};
+}
+function refreshSceneLocale(){
+ if(!state?.scene||!document.getElementById('game')||document.getElementById('game').classList.contains('hidden'))return;
+ const sc=localizedScene(state.scene);if(!sc)return;
+ $('sceneTitle').textContent=sc.title;
+ $('mission').textContent=sc.mission;
+ const content=sc.text.map(x=>`<p>${esc(x)}</p>`).join('');
+ // Preserve the extra introductory component in its original English source; its
+ // own labels are handled by the general UI translator until migrated.
+ $('sceneText').innerHTML=content+(state.scene==='intro'?openingCompanyHtml():'');
+ const buttons=$('choices').querySelectorAll('button.choice');
+ const active=state.players?.[state.activeIndex];
+ const extra=specialistChoiceSets[state.scene]?.[active?.cls];
+ const definitions=extra?[...sc.choices,extra]:sc.choices;
+ buttons.forEach((b,i)=>{const c=definitions[i];if(!c)return;
+  const label=b.querySelector('b'), note=b.querySelector('span');
+  if(label)label.textContent=c[1];
+  if(note){const unavailable=b.disabled&&!((active?.id===me));note.textContent=c[2]+(unavailable?' · '+sceneLocaleText('NOT CURRENTLY AVAILABLE'):'');}
+ });
+}
 function renderGame(){
-  show('game');const sc=scenes[state.scene];if(!sc)return;updateAmbience(state.scene);renderVoiceUi();syncVoicePeers();
-  $('sceneTitle').textContent=sc.title;$('sceneText').innerHTML=sc.text.map(x=>`<p>${x}</p>`).join('')+(state.scene==='intro'?openingCompanyHtml():'');$('mission').textContent=sc.mission;const bridge=$('storyBridge');if(bridge){if(pendingStoryBridge&&pendingStoryBridge.scene===state.scene){bridge.innerHTML=`<p>${esc(pendingStoryBridge.text)}</p>`;bridge.classList.remove('hidden');}else bridge.classList.add('hidden');}
+  show('game');const sc=localizedScene(state.scene);if(!sc)return;updateAmbience(state.scene);renderVoiceUi();syncVoicePeers();
+  $('sceneTitle').textContent=sc.title;$('sceneText').innerHTML=sc.text.map(x=>`<p>${esc(x)}</p>`).join('')+(state.scene==='intro'?openingCompanyHtml():'');$('mission').textContent=sc.mission;const bridge=$('storyBridge');if(bridge){if(pendingStoryBridge&&pendingStoryBridge.scene===state.scene){bridge.innerHTML=`<p>${esc(pendingStoryBridge.text)}</p>`;bridge.classList.remove('hidden');}else bridge.classList.add('hidden');}
   const art=sceneArt[state.scene]||['🧭',sc.title],image=sceneImages[state.scene]||'assets/lost_home.jpg';const [icon,caption]=art;$('sceneArt').className=`scene-art ${state.scene}`;$('sceneArt').style.backgroundImage=`url('${image}')`;$('sceneArt').querySelector('.scene-art__caption').textContent=caption;renderNpcMoment(state.scene);renderFinaleCallbacks(state.scene);renderQualityPanels(state.scene);
   $('round').textContent=state.round;$('hope').textContent=state.hope;$('threat').textContent=state.threat;$('supplies').textContent=state.supplies;$('relics').textContent=state.relics;if($('coin'))$('coin').textContent=state.coin||0;if($('pressureNote')){$('pressureNote').textContent=threatStatusText(state.threat);$('pressureNote').className='pressure-note '+(state.threat>=5?'high':state.threat>=3?'mid':'low');}
   const active=state.players[state.activeIndex],mine=active?.id===me,waiting=(state.groups||[]).find(g=>g.id===state.currentGroupId)?.waitingMerge;$('turnNotice').className='turn-notice'+(mine?' mine':'');$('turnNotice').innerHTML=waiting?`<b>${esc(state.currentGroupName||'Your group')} has reached the rendezvous.</b> The other group is still on its route.`:mine?`<b>Your turn, ${esc(active.name)}.</b> Choose what your hero does next.${state.groups?.length>1?` <span class="group-badge">${esc(state.currentGroupName)}</span>`:''}`:`Waiting for <b>${esc(active?.name||'')}</b>${state.groups?.length>1?` · ${esc((state.groups||[]).find(g=>(g.playerIds||[]).includes(active?.id))?.name||'another group')}`:''}.`;
-  $('choices').innerHTML=''; if(!state.pending){const extra=specialistChoiceSets[state.scene]?.[active?.cls];const actionChoices=extra?[...sc.choices,extra]:sc.choices;actionChoices.forEach(choice=>{const [id,label,note]=choice,available=requirementSatisfied(choice)&&(!id.startsWith('spell_')||(active?.milestone||0)>=1&&(active?.energy||0)>=(id==='spell_seal'?2:1));const b=document.createElement('button');b.className='choice';b.disabled=!mine||!available;b.innerHTML=`<b>${label}</b><span>${note}${available?'':' · NOT CURRENTLY AVAILABLE'}</span>`;b.onclick=()=>socket.emit('chooseAction',{action:id});$('choices').appendChild(b);});}
+  $('choices').innerHTML=''; if(!state.pending){const extra=specialistChoiceSets[state.scene]?.[active?.cls];const actionChoices=extra?[...sc.choices,extra]:sc.choices;actionChoices.forEach(choice=>{const [id,label,note]=choice,available=requirementSatisfied(choice)&&(!id.startsWith('spell_')||(active?.milestone||0)>=1&&(active?.energy||0)>=(id==='spell_seal'?2:1));const b=document.createElement('button');b.className='choice';b.disabled=!mine||!available;b.innerHTML=`<b>${esc(sceneLocaleText(label))}</b><span>${esc(sceneLocaleText(note))}${available?'':' · '+esc(sceneLocaleText('NOT CURRENTLY AVAILABLE'))}</span>`;b.onclick=()=>socket.emit('chooseAction',{action:id});$('choices').appendChild(b);});}
   renderMiniHero();renderChallenge(mine);renderHostTools();renderInventory();renderJourney();$('party').innerHTML=state.players.map(p=>playerCard(p,true)).join('');$('log').innerHTML=state.log.slice().reverse().map(x=>`<div class="log-item">• ${esc(x)}</div>`).join('');renderLastRoll();
 }
 
@@ -1282,6 +1315,7 @@ function setInterfaceLanguage(lang){
  document.querySelectorAll('#languageMenu [data-lang]').forEach(b=>b.setAttribute('aria-checked',String(b.dataset.lang===lang)));
  if($('homeLanguage'))$('homeLanguage').value=lang;
  if(typeof updateStoryLanguage==='function')updateStoryLanguage();
+ if(typeof refreshSceneLocale==='function')refreshSceneLocale();
  // Text not covered by the offline catalogue remains in English; do not call this a complete localization.
 }
 (function setupLanguageMenu(){
@@ -1405,7 +1439,7 @@ localizedText.de={
 // Missing translations are reported, never silently described as complete.
 const syncedCatalog=window.LOST_EXPEDITION_I18N||{};
 for(const lang of ['nl','fr','de'])Object.assign(localizedText[lang],syncedCatalog[lang]||{});
-const translateZones=['#home','#homeFlow','#heroSheetBody','#journalBody','#recapBody','#log','#battleState','#callbackPanel','#sceneKindBadge','#sceneTitle','#sceneText','#mission','#choices','#sceneArt .scene-art__caption','#storyBridge','#pressureNote','#passiveInsight','#itemCallback','#npcMoment','#sceneReveal'];
+const translateZones=['#create','#join','#lobby','#game','#ended','#home','#homeFlow','#heroSheetBody','#journalBody','#recapBody','#log','#battleState','#callbackPanel','#sceneKindBadge','#sceneArt .scene-art__caption','#storyBridge','#pressureNote','#passiveInsight','#itemCallback','#npcMoment','#sceneReveal'];
 const originalNodeText=new WeakMap(),originalTextNodes=new Set(),translationMemory={nl:new Map(),fr:new Map(),de:new Map()};
 let translationBusy=false,translationQueued=false,translationEpoch=0,providerAvailable=false;
 function isTranslatableNode(node){
@@ -1422,8 +1456,10 @@ function findTranslationNodes(){
   if(original===undefined){original=node.nodeValue;originalNodeText.set(node,original);originalTextNodes.add(node);}
   // When game redraws a node with new source content, accept the new value.
   const current=node.nodeValue;
-  const known=translationMemory.nl.get(original)===current||translationMemory.fr.get(original)===current||translationMemory.de.get(original)===current;
-  if(current!==original&&!known&&selectedLanguage==='en'){original=current;originalNodeText.set(node,original);}
+  const known=[...['nl','fr','de']].some(lang=>translationMemory[lang].get(original)===current||localizedText[lang]?.[original.trim()]===current.trim());
+  // Re-rendered gameplay text must become the new English source even when Dutch is active.
+  // Otherwise a scene update may restore stale translations or leave visible English copy.
+  if(current!==original&&!known){original=current;originalNodeText.set(node,original);}
   out.push([node,original]);
  }
  }return out;
@@ -1453,6 +1489,30 @@ async function updateStoryLanguage(){
   }
  }finally{translationBusy=false;if(translationQueued){translationQueued=false;queueMicrotask(updateStoryLanguage);}}
 }
+
+// V22.7 Dutch release-candidate: translate native option labels and accessibility attributes.
+const i18nAttributeSources=new WeakMap();
+function updateLanguageAttributes(){
+ const lang=selectedLanguage;
+ document.querySelectorAll('select option,[title],[placeholder],[aria-label],[alt]').forEach(el=>{
+  const record=i18nAttributeSources.get(el)||{};
+  const keys=el.matches('option')?['textContent']:['title','placeholder','aria-label','alt'];
+  for(const key of keys){
+   const current=key==='textContent'?el.textContent:el.getAttribute(key);
+   if(current==null||!current.trim())continue;
+   let original=record[key];
+   if(original===undefined){original=current;record[key]=original;}
+   const known=Object.keys(localizedText).some(code=>localizedText[code]?.[original.trim()]===current.trim());
+   if(current!==original&&!known){original=current;record[key]=original;}
+   const target=lang==='en'?original:(localizedText[lang]?.[original.trim()]||original);
+   if(target!==current){if(key==='textContent')el.textContent=target;else el.setAttribute(key,target);}
+  }
+  i18nAttributeSources.set(el,record);
+ });
+}
+const oldUpdateStoryLanguage=updateStoryLanguage;
+updateStoryLanguage=async function(){await oldUpdateStoryLanguage();updateLanguageAttributes();};
+
 $('homeLanguage')?.addEventListener('change',e=>setInterfaceLanguage(e.target.value));
 // Reapply translations after scenes, dialogs and choices are rendered.
 let languageRefreshTimer=null;
@@ -1672,3 +1732,62 @@ function veilEnhanceChallengePresentation(){
 const veilChallengePresentationObserver=new MutationObserver(()=>setTimeout(veilEnhanceChallengePresentation,0));
 if(document.getElementById('challenge')){veilChallengePresentationObserver.observe(document.getElementById('challenge'),{childList:true,subtree:true});}
 
+
+
+/* V22.6: player-first playtest UI; no changes to story state or socket events. */
+const playtestCopy={
+ en:{guideTitle:'PLAYTEST GUIDE',guideButton:'How to play · 5 minutes',feedbackButton:'Give playtest feedback',feedbackTitle:'Your playtest feedback',feedbackIntro:'Your answers stay on your device until you copy them. Send the copied text to the game creator.',pace:'Pacing (1 slow · 5 ideal)',clarity:'Clarity (1 confusing · 5 clear)',fun:'Enjoyment (1 low · 5 high)',comment:'Favourite moment, confusing moment or improvement?',copy:'Copy feedback',close:'Close',copied:'Feedback copied — paste into a message.',chapter:'Expedition chapter',turn:'Discuss your plan together. The active player chooses; other heroes can suggest and assist when offered.',noSave:'If disconnected, reopen this page and use Return or Rejoin. Keep the room code and Return PIN.',chapterNames:['Voyage','Shipwreck','The wilds','Ancient ruins','The Order of Ash','Heart and White City']},
+ nl:{guideTitle:'SPEELTESTGIDS',guideButton:'Speluitleg · 5 minuten',feedbackButton:'Geef feedback op de speeltest',feedbackTitle:'Jouw feedback',feedbackIntro:'Je antwoorden blijven op je toestel totdat je ze kopieert. Stuur de gekopieerde tekst naar de maker.',pace:'Tempo (1 traag · 5 ideaal)',clarity:'Duidelijkheid (1 verwarrend · 5 duidelijk)',fun:'Spelplezier (1 laag · 5 hoog)',comment:'Leukste moment, verwarrend moment of suggestie?',copy:'Feedback kopiëren',close:'Sluiten',copied:'Feedback gekopieerd — plak de tekst in een bericht.',chapter:'Hoofdstuk van de expeditie',turn:'Bespreek samen jullie plan. De speler die aan de beurt is kiest; de anderen kunnen adviseren en helpen wanneer dat mogelijk is.',noSave:'Verbinding verbroken? Open de pagina opnieuw en kies Terugkeren of Opnieuw verbinden. Bewaar de kamercode en terugkeerpincode.',chapterNames:['De zeereis','De schipbreuk','De wildernis','Oude ruïnes','De Orde van As','Het Hart en de Witte Stad']},
+ fr:{guideTitle:'GUIDE DE TEST',guideButton:'Comment jouer · 5 minutes',feedbackButton:'Donner un avis',feedbackTitle:'Votre avis',feedbackIntro:'Copiez vos réponses pour les envoyer au créateur.',pace:'Rythme',clarity:'Clarté',fun:'Plaisir',comment:'Moments marquants et idées ?',copy:'Copier',close:'Fermer',copied:'Avis copié.',chapter:'Chapitre',turn:'Discutez ensemble de votre plan.',noSave:'Pour reprendre, utilisez le code et le code PIN.',chapterNames:['Voyage','Naufrage','Terres sauvages','Ruines','Ordre des Cendres','Cœur et Cité blanche']},
+ de:{guideTitle:'TESTSPIEL-LEITFADEN',guideButton:'Spielanleitung · 5 Minuten',feedbackButton:'Feedback geben',feedbackTitle:'Dein Feedback',feedbackIntro:'Kopiere deine Antworten und sende sie dem Entwickler.',pace:'Tempo',clarity:'Verständlichkeit',fun:'Spielspaß',comment:'Lieblingsmoment und Verbesserungen?',copy:'Feedback kopieren',close:'Schließen',copied:'Feedback kopiert.',chapter:'Kapitel',turn:'Besprecht euren Plan gemeinsam.',noSave:'Zum Wiederverbinden Raumcode und PIN nutzen.',chapterNames:['Seereise','Schiffbruch','Wildnis','Ruinen','Orden der Asche','Herz und Weiße Stadt']}
+};
+function playtestLang(){return playtestCopy[selectedLanguage]||playtestCopy.en;}
+function refreshPlaytestLabels(){const t=playtestLang();document.querySelectorAll('[data-i18n]').forEach(el=>{const k=el.dataset.i18n;if(t[k])el.textContent=t[k]});const pairs={playtestFeedbackTitle:'feedbackTitle',playtestFeedbackIntro:'feedbackIntro',playtestPaceLabel:'pace',playtestClarityLabel:'clarity',playtestFunLabel:'fun',playtestCommentLabel:'comment',playtestCopyFeedback:'copy',playtestFeedbackClose:'close',playtestFeedbackDone:'close'};for(const [id,k] of Object.entries(pairs)){const el=document.getElementById(id);if(el)el.textContent=t[k]};refreshPlaytestStory();}
+function playtestChapter(scene){const ids=['intro','wreck','road','green_gate','ash_sails','heart_chamber'];const id=String(scene||'');const n=ids.indexOf(id);if(n>=0)return n;const sets=[/deck|storm|wave|voyage|after_storm|pause/i,/wreck|shore|beach|coast_fire|camp_council/i,/river|ridge|wolf|marsh|troll|forest|ferry/i,/ruin|green|mural|root|council|serayne/i,/ash|order|vael|thorne|quarry|prison|canyon/i,/heart|beacon|siege|city|final|dawn/i];const found=sets.findIndex(rx=>rx.test(id));return found<0?2:found;}
+function refreshPlaytestStory(){if(!state?.scene||state?.phase!=='playing')return;const t=playtestLang(),prog=document.getElementById('playtestProgress'),hint=document.getElementById('playtestTeamHint');if(prog)prog.textContent=`${t.chapter} · ${t.chapterNames[playtestChapter(state.scene)]}`;if(hint)hint.textContent=t.turn;}
+function openPlaytestFeedback(){refreshPlaytestLabels();document.getElementById('playtestFeedbackModal')?.classList.remove('hidden');}
+function closePlaytestFeedback(){document.getElementById('playtestFeedbackModal')?.classList.add('hidden');}
+document.getElementById('playtestFeedbackButton')?.addEventListener('click',openPlaytestFeedback);
+document.getElementById('playtestFeedbackClose')?.addEventListener('click',closePlaytestFeedback);
+document.getElementById('playtestFeedbackDone')?.addEventListener('click',closePlaytestFeedback);
+document.getElementById('playtestHelpButton')?.addEventListener('click',openAccessHelp);
+document.getElementById('playtestFeedbackModal')?.addEventListener('click',e=>{if(e.target.id==='playtestFeedbackModal')closePlaytestFeedback()});
+document.getElementById('playtestCopyFeedback')?.addEventListener('click',()=>{const t=playtestLang();const text=`The Veil of Aranor · playtest\nLanguage: ${selectedLanguage}\n${t.pace}: ${document.getElementById('playtestPace').value}/5\n${t.clarity}: ${document.getElementById('playtestClarity').value}/5\n${t.fun}: ${document.getElementById('playtestFun').value}/5\n${t.comment}: ${document.getElementById('playtestComment').value.trim()}`;copyText(text,document.getElementById('playtestCopyFeedback'),t.copied);document.getElementById('playtestFeedbackStatus').textContent=t.copied});
+const oldSetPlaytestLang=setInterfaceLanguage;setInterfaceLanguage=function(lang){oldSetPlaytestLang(lang);refreshPlaytestLabels();};
+const playtestMutationObserver=new MutationObserver(()=>{refreshPlaytestStory()});if(document.getElementById('sceneTitle'))playtestMutationObserver.observe(document.getElementById('sceneTitle'),{childList:true,characterData:true,subtree:true});
+refreshPlaytestLabels();
+
+
+// V22.7 Part 2: locale-sensitive attributes and accessible labels. Never translate
+// room codes, user-entered names, values or text inside private fields.
+const localeAttributeSources = new WeakMap();
+const localeAttributeNames = ['title','placeholder','aria-label','alt'];
+function updateLocaleAttributes(){
+ const lang = selectedLanguage;
+ for(const el of document.querySelectorAll('[title],[placeholder],[aria-label],[alt]')){
+  if(el.closest('[contenteditable],#roomCode,#returnPin,#voicePeers')) continue;
+  let source = localeAttributeSources.get(el);
+  if(!source){source={};localeAttributeSources.set(el,source);}
+  for(const attr of localeAttributeNames){
+   if(!el.hasAttribute(attr))continue;
+   const current=el.getAttribute(attr);
+   if(!(attr in source)) source[attr]=current;
+   const english=source[attr];
+   const known=localizedText[lang]?.[english];
+   const target=lang==='en'?english:(known||english);
+   if(current!==target)el.setAttribute(attr,target);
+  }
+ }
+}
+const previousLanguageSetter=setInterfaceLanguage;
+setInterfaceLanguage=function(lang){
+ previousLanguageSetter(lang);
+ updateLocaleAttributes();
+ document.dispatchEvent(new CustomEvent('aranor:language-changed',{detail:{lang:selectedLanguage}}));
+};
+const languageAttributesObserver=new MutationObserver(()=>{
+ clearTimeout(languageAttributesObserver.pending);
+ languageAttributesObserver.pending=setTimeout(updateLocaleAttributes,120);
+});
+languageAttributesObserver.observe(document.body,{subtree:true,childList:true});
+setInterfaceLanguage(selectedLanguage);

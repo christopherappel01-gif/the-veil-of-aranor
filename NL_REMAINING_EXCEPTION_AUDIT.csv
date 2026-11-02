@@ -1,0 +1,465 @@
+category,source_text
+fragment_or_identifier,",
+  after_storm:"
+fragment_or_identifier,",
+  allies_arrive:"
+fragment_or_identifier,",
+  archive_night:"
+fragment_or_identifier,",
+  ash_archive:"
+fragment_or_identifier,",
+  ash_canyon:"
+fragment_or_identifier,",
+  ash_coast:"
+fragment_or_identifier,",
+  ash_prison:"
+fragment_or_identifier,",
+  ash_sails:"
+fragment_or_identifier,",
+  beach_triage:"
+fragment_or_identifier,",
+  beacon_keeper:"
+fragment_or_identifier,",
+  beacon_tower:"
+fragment_or_identifier,",
+  black_beach:"
+fragment_or_identifier,",
+  bridge_aftermath:"
+fragment_or_identifier,",
+  bridge_approach:"
+fragment_or_identifier,",
+  bridge_parley:"
+fragment_or_identifier,",
+  broken_keep:"
+fragment_or_identifier,",
+  buried_exit:"
+fragment_or_identifier,",
+  buried_gallery:"
+fragment_or_identifier,",
+  burning_courtyard:"
+fragment_or_identifier,",
+  burning_lane:"
+fragment_or_identifier,",
+  camp_council:"
+fragment_or_identifier,",
+  canyon_floor:"
+fragment_or_identifier,",
+  cedar_hollow:"
+fragment_or_identifier,",
+  cellar_route:"
+fragment_or_identifier,",
+  civic_hall:"
+fragment_or_identifier,",
+  cliff_camp:"
+fragment_or_identifier,",
+  cliff_route:"
+fragment_or_identifier,",
+  collapse:"
+fragment_or_identifier,",
+  council:"
+fragment_or_identifier,",
+  crystal_fissure:"
+fragment_or_identifier,",
+  cut_stone:"
+fragment_or_identifier,",
+  deck_pause:"
+fragment_or_identifier,",
+  deep_rootway:"
+fragment_or_identifier,",
+  dust_camp:"
+fragment_or_identifier,",
+  eagle_ledge:"
+fragment_or_identifier,",
+  east_camp:"
+fragment_or_identifier,",
+  east_reeds:"
+fragment_or_identifier,",
+  east_river:"
+fragment_or_identifier,",
+  echo_chamber:"
+fragment_or_identifier,",
+  escape_cage:"
+fragment_or_identifier,",
+  escape_coast:"
+fragment_or_identifier,",
+  final_cost:"
+fragment_or_identifier,",
+  final_road:"
+fragment_or_identifier,",
+  final_stand:"
+fragment_or_identifier,",
+  finale_crisis:"
+fragment_or_identifier,",
+  flooded_court:"
+fragment_or_identifier,",
+  fungal_hall:"
+fragment_or_identifier,",
+  goat_track:"
+fragment_or_identifier,",
+  goblin_border:"
+fragment_or_identifier,",
+  goblin_capture:"
+fragment_or_identifier,",
+  green_gate:"
+fragment_or_identifier,",
+  hanging_platform:"
+fragment_or_identifier,",
+  heart_chamber:"
+fragment_or_identifier,",
+  heart_truth:"
+fragment_or_identifier,",
+  heart_vision:"
+fragment_or_identifier,",
+  hidden_cartway:"
+fragment_or_identifier,",
+  high_descent:"
+fragment_or_identifier,",
+  high_forest:"
+fragment_or_identifier,",
+  high_pass:"
+fragment_or_identifier,",
+  hunter_trap:"
+fragment_or_identifier,",
+  hunters_camp:"
+fragment_or_identifier,",
+  ice_bridge:"
+fragment_or_identifier,",
+  last_beacon:"
+fragment_or_identifier,",
+  lost_marsh:"
+fragment_or_identifier,",
+  lower_city:"
+fragment_or_identifier,",
+  lower_rescue:"
+fragment_or_identifier,",
+  marsh_exit:"
+fragment_or_identifier,",
+  marsh_lights:"
+fragment_or_identifier,",
+  marsh_night:"
+fragment_or_identifier,",
+  marsh_recovery:"
+fragment_or_identifier,",
+  marsh_route:"
+fragment_or_identifier,",
+  marsh_shelter:"
+fragment_or_identifier,",
+  medicine_choice:"
+fragment_or_identifier,",
+  mirror_detour:"
+fragment_or_identifier,",
+  mirror_vault:"
+fragment_or_identifier,",
+  moon_pool:"
+fragment_or_identifier,",
+  mountain_gate:"
+fragment_or_identifier,",
+  night_assault:"
+fragment_or_identifier,",
+  old_ferry:"
+fragment_or_identifier,",
+  old_lift:"
+fragment_or_identifier,",
+  order_duel:"
+fragment_or_identifier,",
+  pass_camp:"
+fragment_or_identifier,",
+  quarry_exit:"
+fragment_or_identifier,",
+  quarry_route:"
+fragment_or_identifier,",
+  quiet_fire:"
+fragment_or_identifier,",
+  rain_shelf:"
+fragment_or_identifier,",
+  ravine_fall:"
+fragment_or_identifier,",
+  reed_islands:"
+fragment_or_identifier,",
+  ridge_descent:"
+fragment_or_identifier,",
+  ridge_route:"
+fragment_or_identifier,",
+  ridge_shrine:"
+fragment_or_identifier,",
+  road_echo:"
+fragment_or_identifier,",
+  root_chamber:"
+fragment_or_identifier,",
+  root_tunnels:"
+fragment_or_identifier,",
+  rootway_exit:"
+fragment_or_identifier,",
+  ruined_watch:"
+fragment_or_identifier,",
+  salt_steps:"
+fragment_or_identifier,",
+  sea_cave_watch:"
+fragment_or_identifier,",
+  sea_caves:"
+fragment_or_identifier,",
+  serayne_hub:"
+fragment_or_identifier,",
+  shore_camp:"
+fragment_or_identifier,",
+  shore_rest:"
+fragment_or_identifier,",
+  siege_choice:"
+fragment_or_identifier,",
+  siege_gate:"
+fragment_or_identifier,",
+  siege_wave1:"
+fragment_or_identifier,",
+  six_mural:"
+fragment_or_identifier,",
+  smoke_shore:"
+fragment_or_identifier,",
+  spore_sick:"
+fragment_or_identifier,",
+  stone_ford:"
+fragment_or_identifier,",
+  stone_steps:"
+fragment_or_identifier,",
+  storm_shelf:"
+fragment_or_identifier,",
+  survivor_camp:"
+fragment_or_identifier,",
+  thorne_choice:"
+fragment_or_identifier,",
+  thorne_flees:"
+fragment_or_identifier,",
+  traitor_reveal:"
+fragment_or_identifier,",
+  troll_chase:"
+fragment_or_identifier,",
+  undercliff_wreck:"
+fragment_or_identifier,",
+  undergate_chasm:"
+fragment_or_identifier,",
+  underground_river:"
+fragment_or_identifier,",
+  vael_parley:"
+fragment_or_identifier,",
+  vault_puzzle:"
+fragment_or_identifier,",
+  waiting_reunion:"
+fragment_or_identifier,",
+  wall_archers:"
+fragment_or_identifier,",
+  wall_breach:"
+fragment_or_identifier,",
+  wall_push:"
+fragment_or_identifier,",
+  watch_peak:"
+fragment_or_identifier,",
+  watchtower_ambush:"
+fragment_or_identifier,",
+  west_descent:"
+fragment_or_identifier,",
+  west_ridge:"
+fragment_or_identifier,",
+  whisper_ruins:"
+fragment_or_identifier,",
+  white_city_camp:"
+fragment_or_identifier,",
+  wolf_pursuit:"
+fragment_or_identifier,",
+  wolf_ring:"
+fragment_or_identifier,",
+  wolf_sign:"
+fragment_or_identifier,",
+  wreck_fire:"
+fragment_or_identifier,", ""The young goblin gives a name—Nim—and refuses to let go of the nearest rescuer"
+fragment_or_identifier,", later strain usually turns into extra Threat or harsher consequences instead."
+fragment_or_identifier,", the company loses that safety net."
+fragment_or_identifier,", there is no pressure penalty."
+fragment_or_identifier,",mission:'Decide together what the expedition stands for before entering Aranor.',text:["
+fragment_or_identifier,",mission:'Discover who survived the storm and decide what must be saved first.',text:["
+other_or_review,in navigator)window.addEventListener(
+other_or_review,"s Signal Horn"",icon:"
+other_or_review,"s adventure"","
+other_or_review,"s bell rings in the darkness, not as a warning but because the broken mast keeps striking it. There are voices in the hold. Someone is calling a name that no one answers."","
+other_or_review,"s consequences settle before entering the ruins."",text:["
+other_or_review,"s go!"",parts:[["
+other_or_review,"s responsibility."", ""Thorne argues that the golden signal offers their best hope of rescue. Another sailor calls him a fool and asks why he seems to know so much about it. The argument stops when something answers the ship"
+other_or_review,"s tiny handprint on the wet stone. The two sets of tracks turn toward the bridge together."","
+other_or_review,🇩🇪 Deutsch
+other_or_review,🇫🇷 Français
+other_or_review,🇬🇧 English
+other_or_review,🇳🇱 Nederlands
+fragment_or_identifier,",
+    Artisan:"
+fragment_or_identifier,",
+    Engineer:"
+fragment_or_identifier,",
+    Outlander:"
+fragment_or_identifier,",
+    Ranger:"
+fragment_or_identifier,",
+    Sailor:"
+fragment_or_identifier,",
+    Scholar:"
+fragment_or_identifier,",
+    Serayne:"
+fragment_or_identifier,",
+    Streetwise:"
+fragment_or_identifier,",
+    Thief:"
+fragment_or_identifier,",
+    Thorne: scene==="
+fragment_or_identifier,",
+    ash_coast:"
+fragment_or_identifier,",
+    final_road:"
+fragment_or_identifier,",
+    goblin_border:"
+fragment_or_identifier,",
+    green_gate:"
+fragment_or_identifier,",
+    mountain_gate:"
+non_english_or_review,1. Créez votre héros
+other_or_review,1. Erstelle deinen Helden
+other_or_review,1. Maak je held
+other_or_review,2. Beslis samen
+other_or_review,2. Décidez ensemble
+other_or_review,2. Entscheidet gemeinsam
+other_or_review,3. Gooi wanneer nodig
+non_english_or_review,3. Lancez les dés
+other_or_review,3. Würfle bei Herausforderungen
+other_or_review,4. Entwickelt euch weiter
+non_english_or_review,4. Groei tijdens het avontuur
+other_or_review,4. Progressez ensemble
+other_or_review,5. Atteignez la fin
+non_english_or_review,5. Bereik het einde
+other_or_review,5. Erlebt ein Ende
+other_or_review,AKTUELLE MISSION
+other_or_review,Begin expeditie
+non_english_or_review,"Betrachte die Menschen, das Schiff und den seltsamen Horizont, bevor die Nacht alles verändert."
+non_english_or_review,Bleibe bei der Gruppe und beobachte den Horizont
+non_english_or_review,Blijf bij het gezelschap en bestudeer de horizon
+other_or_review,COÖPERATIEVE FANTASY-RPG · 1–6 SPELERS
+non_english_or_review,Certains lieux sont oubliés pour une raison.
+other_or_review,"Chaque joueur crée un héros, choisit ses origines, répartit ses compétences et progresse au fil du récit."
+other_or_review,"Chevalier, rôdeur, voleur, mage, moine ou ingénieur : chacun possède ses forces et ses moments de gloire."
+non_english_or_review,Choisissez une classe
+non_english_or_review,Choisissez une classe et un portrait. Vous pouvez utiliser les compétences suggérées.
+other_or_review,Commencer l’expédition
+other_or_review,Comment jouer
+other_or_review,Conversation · choisissez ce qui compte
+non_english_or_review,Conversation · une question
+other_or_review,C’est parti !
+non_english_or_review,DEINE ENTSCHEIDUNGEN
+non_english_or_review,DEINE GRUPPE
+other_or_review,Das goldene Licht am Horizont
+non_english_or_review,De Resolute gaat niet meteen van ontdekking naar rampspoed. Enkele minuten drijft het schip onder het onmogelijke gouden licht. Matrozen praten zachter. Kapitein Veyra laat de lampen bijstellen en de touwen tweemaal controleren.
+other_or_review,Demander à Thorne ce que représente la lumière
+other_or_review,Demander à Veyra ce qui l’inquiète le plus
+non_english_or_review,Der Sprachchat ist optional und von den Spielgeräuschen getrennt.
+other_or_review,Die Geschichte erinnert sich
+non_english_or_review,Die Resolute stürzt nicht unmittelbar nach ihrer Entdeckung ins Unheil. Minutenlang treibt das Schiff unter dem unmöglichen goldenen Licht. Die Seeleute senken die Stimmen. Kapitänin Veyra lässt die Lampen einstellen und die Leinen zweimal prüfen.
+other_or_review,Doel
+non_english_or_review,Eine Minute vor dem Wetterumschwung
+non_english_or_review,"Elias Thorne ist mit drei Notizbüchern unter Deck hervorgekommen, aber ohne seine übliche Gewissheit. Er starrt immer wieder nach Westen, als würde er etwas erkennen, das er sich nicht eingestehen will."
+non_english_or_review,"Elias Thorne komt van benedendeks met drie notitieboeken, maar zonder zijn gebruikelijke zelfvertrouwen. Hij blijft naar het westen staren alsof hij iets herkent wat hij niet wil toegeven."
+non_english_or_review,"Elias Thorne remonte du pont inférieur avec trois carnets, mais sans son assurance habituelle. Il fixe l’ouest comme s’il reconnaissait quelque chose qu’il refuse de s’avouer."
+non_english_or_review,"Elke speler maakt een held, kiest een achtergrond, verdeelt vaardigheden en wordt sterker naarmate het verhaal zich ontvouwt."
+non_english_or_review,Eure Entscheidungen prägen die Reise und ihren Ausgang. Ihr könnt pausieren und später weiterspielen.
+non_english_or_review,"Eure Gruppe hat noch einen kurzen Moment, um eine Frage zu stellen, die Position zu bestimmen oder einfach zu beobachten, wie die Expedition reagiert, bevor das Wetter umschlägt."
+other_or_review,Expedition beginnen
+other_or_review,Expedition beitreten
+non_english_or_review,Eén minuut voordat het weer omslaat
+non_english_or_review,Findet Ausrüstung und erhaltet Verbesserungen. Jede Klasse hat eigene Stärken.
+other_or_review,"Frage Thorne, was er von dem Licht hält"
+other_or_review,"Frage Veyra, was ihr am meisten Sorgen macht"
+other_or_review,Geen spelleider nodig · Speel in je browser · Sla op en keer later terug
+other_or_review,Gemeinsam spielen
+other_or_review,Gesprek · kies wat belangrijk is
+other_or_review,Gesprek · één vraag
+non_english_or_review,Gespräch · eine Frage
+other_or_review,"Gespräch · entscheide, was wichtig ist"
+non_english_or_review,Gooi een zeszijdige dobbelsteen. Tel je vaardigheid en eventuele bonussen erbij op. Haal het doelgetal of meer.
+non_english_or_review,HET GEZELSCHAP
+other_or_review,HUIDIGE MISSIE
+non_english_or_review,Het gouden licht aan de horizon
+non_english_or_review,Het verhaal onthoudt
+other_or_review,JEU DE RÔLE FANTASTIQUE COOPÉRATIF · 1 À 6 JOUEURS
+non_english_or_review,JOUW GEZELSCHAP
+non_english_or_review,"Jeder Spieler erstellt einen Helden, wählt eine Herkunft, verteilt Fähigkeiten und wird im Laufe der Geschichte stärker."
+other_or_review,Jouez ensemble
+non_english_or_review,"Jullie gezelschap heeft nog even tijd om een vraag te stellen, de koers te bepalen of te kijken hoe de expeditie reageert voordat het weer omslaat."
+non_english_or_review,Jullie keuzes beïnvloeden de reis en het einde. Je kunt tussendoor opslaan.
+other_or_review,KOOPERATIVES FANTASY-ROLLENSPIEL · 1–6 SPIELER
+non_english_or_review,Keine Spielleitung nötig · Direkt im Browser · Jederzeit speichern und zurückkehren
+non_english_or_review,Kies een klasse
+non_english_or_review,Kies een klasse en een portret. Je kunt de voorgestelde vaardigheden gebruiken.
+other_or_review,LA COMPAGNIE
+other_or_review,La lumière dorée à l’horizon
+non_english_or_review,Lancez un dé à six faces. Ajoutez votre compétence et les bonus indiqués. Atteignez ou dépassez le nombre cible.
+non_english_or_review,"Le Resolute ne passe pas aussitôt de la découverte au désastre. Pendant plusieurs minutes, le navire dérive sous une impossible lumière dorée. Les marins baissent la voix. La capitaine Veyra ordonne de régler les lampes et de vérifier deux fois les cordages."
+non_english_or_review,Le chat vocal est facultatif et indépendant des sons du jeu.
+non_english_or_review,"Lees het verhaal en bespreek de mogelijkheden. Als je aan de beurt bent, kies je wat je held probeert."
+non_english_or_review,"Les échecs ouvrent de nouveaux chemins. Alliés, objets et décisions peuvent compter plusieurs heures plus tard."
+non_english_or_review,"Lest die Geschichte und besprecht eure Möglichkeiten. Wenn du an der Reihe bist, entscheidest du, was dein Held versucht."
+non_english_or_review,"Lisez l’histoire et discutez des options. À votre tour, choisissez ce que votre héros tente de faire."
+other_or_review,L’histoire se souvient
+other_or_review,MISSION ACTUELLE
+non_english_or_review,Manche Orte sind nicht ohne Grund vergessen.
+non_english_or_review,"Mislukkingen openen nieuwe wegen. Bondgenoten, voorwerpen en beslissingen kunnen uren later nog belangrijk zijn."
+non_english_or_review,"Misserfolge eröffnen neue Wege. Verbündete, Gegenstände und Entscheidungen können noch Stunden später wichtig werden."
+non_english_or_review,"Na een schipbreuk op een continent dat uit de geschiedenis is gewist, trekt jullie gezelschap langs levende ruïnes, verdeelde koninkrijken en een oorlog om een oeroude macht. De expeditie zal onthouden wie elke held wordt."
+non_english_or_review,"Nach einem Schiffbruch auf einem Kontinent, der aus der Geschichte getilgt wurde, durchquert eure Gruppe lebendige Ruinen und zerrissene Königreiche und gerät in einen Krieg um eine uralte Macht. Die Expedition wird sich daran erinnern, was aus jedem Helden wird."
+non_english_or_review,"Naufragée sur un continent effacé de l’histoire, votre compagnie traversera des ruines vivantes, des royaumes divisés et une guerre pour un pouvoir ancestral. L’expédition se souviendra de ce que devient chaque héros."
+non_english_or_review,Neu bei Rollenspielen? Das Spiel wirft einen sechsseitigen Würfel und addiert deine Fähigkeit und Boni automatisch. Erreiche oder übertriff die Zielzahl.
+non_english_or_review,Nicht verbunden
+non_english_or_review,Niet verbonden
+non_english_or_review,Nieuw met rollenspellen? Het spel gooit een zeszijdige dobbelsteen. Je vaardigheid en uitrustingsbonussen worden automatisch opgeteld. Haal het doelgetal of meer.
+other_or_review,Noch niemand ist dem Sprachchat beigetreten.
+other_or_review,Nog niemand is verbonden met spraakchat.
+other_or_review,Non connecté
+other_or_review,Objectif
+other_or_review,Observation tranquille · sans lancer
+non_english_or_review,"Observeer de mensen, het schip en de vreemde horizon voordat de nacht alles verandert."
+non_english_or_review,"Observez les hommes, le navire et cet étrange horizon avant que la nuit ne bouleverse tout."
+other_or_review,Personne n’a encore rejoint le chat vocal.
+non_english_or_review,Rejoignez la partie sur téléphone ou ordinateur et relevez ensemble des défis qu’aucun héros ne pourrait affronter seul.
+non_english_or_review,Rejoindre une expédition
+non_english_or_review,Rester avec la compagnie et observer l’horizon
+other_or_review,"Ridder, spoorzoeker, dief, magiër, monnik of ingenieur — ieder met eigen sterke punten en bijzondere momenten."
+non_english_or_review,"Ritter, Waldläufer, Dieb, Magier, Mönch oder Ingenieur – jede Klasse mit eigenen Stärken, Entwicklungen und besonderen Momenten."
+non_english_or_review,Rustige observatie · niet dobbelen
+non_english_or_review,Sans maître du jeu · Dans votre navigateur · Sauvegardez et revenez plus tard
+non_english_or_review,Sechs Heldenwege. Eine gemeinsame Expedition.
+non_english_or_review,Six destins héroïques. Une expédition commune.
+non_english_or_review,Sluit je aan bij een expeditie
+other_or_review,So funktioniert das Spiel
+non_english_or_review,Sommige plaatsen zijn niet voor niets vergeten.
+other_or_review,Speel mee op je telefoon of laptop en los samen problemen op die geen held alleen aankan.
+non_english_or_review,"Spielt auf Smartphones oder Laptops zusammen und bewältigt Gefahren, denen kein Held allein gewachsen wäre."
+non_english_or_review,Spraakchat is optioneel en staat los van de spelgeluiden.
+other_or_review,Stille Beobachtung · kein Würfelwurf
+non_english_or_review,Trouvez de l’équipement et gagnez des améliorations. Chaque classe a ses forces.
+non_english_or_review,Une minute avant que le temps ne change
+non_english_or_review,VOTRE ÉQUIPE
+other_or_review,Vind uitrusting en verdien samen verbeteringen. Elke klasse heeft eigen sterke punten.
+non_english_or_review,Vos choix influencent l’aventure et son dénouement. Vous pouvez sauvegarder et reprendre plus tard.
+non_english_or_review,"Votre compagnie dispose d’un bref instant pour poser une question, relever sa position ou simplement observer les réactions de l’expédition avant que le mauvais temps n’arrive."
+non_english_or_review,Vous débutez ? Le jeu lance un dé à six faces et ajoute automatiquement votre compétence et vos bonus. Atteignez ou dépassez le nombre cible.
+non_english_or_review,Vraag Thorne wat hij van het licht denkt
+non_english_or_review,Vraag Veyra waarover ze zich het meeste zorgen maakt
+non_english_or_review,Wirf einen sechsseitigen Würfel. Addiere deine Fähigkeit und angezeigte Boni. Erreiche oder übertriff die Zielzahl.
+non_english_or_review,Wähle eine Klasse
+non_english_or_review,Wähle eine Klasse und ein Porträt. Du kannst die vorgeschlagenen Fähigkeiten übernehmen.
+other_or_review,Zes heldenpaden. Eén gezamenlijke expeditie.
+other_or_review,Ziel
+other_or_review,Zo speel je
+fragment_or_identifier,btn btn-ghost full
+fragment_or_identifier,btn btn-primary
+fragment_or_identifier,btn btn-primary btn-small grow-skill
+fragment_or_identifier,btn btn-primary full
+fragment_or_identifier,btn btn-success full
+fragment_or_identifier,choice talent-btn
+fragment_or_identifier,hero-sheet-section talent-choice
+fragment_or_identifier,journal-entry conclusion
+fragment_or_identifier,journal-entry question
+fragment_or_identifier,outcome-team-score setback-cost
+fragment_or_identifier,roll-card cinematic-result

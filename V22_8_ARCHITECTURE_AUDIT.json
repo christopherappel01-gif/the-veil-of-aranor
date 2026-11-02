@@ -1,0 +1,14 @@
+{
+  "architecture": "V22.8 explicit locale-aware scene renderer",
+  "dictionary_source": "public/translations.generated.js",
+  "locale_scope": "title, objective, story paragraphs, primary choices",
+  "english_fallback": "still present for missing translations",
+  "known_limitations": [
+    "specialist action extra metadata",
+    "server-originated journal / status / inventory data",
+    "live multiplayer verification",
+    "embedded-image text"
+  ],
+  "catalogue_entry_count": 1861,
+  "catalogue_nl_values": 1547
+}
