@@ -1330,7 +1330,7 @@ function setInterfaceLanguage(lang){
 
 // V9 localization. Translating only authored game content prevents inadvertent
 // transmission of player names, room credentials or private chat to a provider.
-// A working DeepL key on the server enables every scripted scene/choice dynamically.
+// All translations are bundled locally; no external translation requests.
 const localizedText={
  nl:{
  'CO-OPERATIVE FANTASY RPG · 1–6 PLAYERS':'COÖPERATIEVE FANTASY-RPG · 1–6 SPELERS',
@@ -1441,7 +1441,7 @@ const syncedCatalog=window.LOST_EXPEDITION_I18N||{};
 for(const lang of ['nl','fr','de'])Object.assign(localizedText[lang],syncedCatalog[lang]||{});
 const translateZones=['#create','#join','#lobby','#game','#ended','#home','#homeFlow','#heroSheetBody','#journalBody','#recapBody','#log','#battleState','#callbackPanel','#sceneKindBadge','#sceneArt .scene-art__caption','#storyBridge','#pressureNote','#passiveInsight','#itemCallback','#npcMoment','#sceneReveal'];
 const originalNodeText=new WeakMap(),originalTextNodes=new Set(),translationMemory={nl:new Map(),fr:new Map(),de:new Map()};
-let translationBusy=false,translationQueued=false,translationEpoch=0,providerAvailable=false;
+let translationBusy=false,translationQueued=false,translationEpoch=0;
 function isTranslatableNode(node){
  const parent=node.parentElement;if(!parent||!node.nodeValue?.trim())return false;
  if(parent.closest('input,textarea,select,option,script,style,[contenteditable],#party,#rejoinInfo,#savedCampaignInfo,#roomCode,#returnPin,#voicePeers,#turnNotice'))return false;
@@ -1467,25 +1467,12 @@ function findTranslationNodes(){
 async function updateStoryLanguage(){
  if(translationBusy){translationQueued=true;return;}translationBusy=true;const epoch=++translationEpoch;
  try{
-  const lang=selectedLanguage,records=findTranslationNodes(),needed=new Set();
+  const lang=selectedLanguage,records=findTranslationNodes();
   for(const [node,raw] of records){const trim=raw.trim();if(!trim)continue;
    if(lang==='en'){if(node.nodeValue!==raw)node.nodeValue=raw;continue;}
    const known=localizedText[lang]?.[trim]||translationMemory[lang].get(trim);
    if(known){const m=raw.match(/^\s*/)?.[0]||'';const suffix=raw.match(/\s*$/)?.[0]||'';const newText=m+known+suffix;if(node.nodeValue!==newText)node.nodeValue=newText;}
-   else if(trim.length>2&&!/^\d+$/.test(trim)&&providerAvailable){needed.add(trim);}
-  }
-  if(lang!=='en'&&needed.size&&providerAvailable){
-   const arr=[...needed];for(let i=0;i<arr.length;i+=25){if(selectedLanguage!==lang||epoch!==translationEpoch)break;
-    const batch=arr.slice(i,i+25);let response;
-    try{response=await fetch('/api/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lang,texts:batch})});}
-    catch{providerAvailable=false;break;}
-    if(!response.ok){providerAvailable=false;break;}
-    const result=await response.json();batch.forEach((v,j)=>translationMemory[lang].set(v,result.texts[j]||v));
-   }
-   for(const [node,raw] of records){if(!node.isConnected||selectedLanguage!==lang)continue;
-    const trim=raw.trim(),translated=localizedText[lang]?.[trim]||translationMemory[lang].get(trim);
-    if(translated){const next=(raw.match(/^\s*/)?.[0]||'')+translated+(raw.match(/\s*$/)?.[0]||'');if(node.nodeValue!==next)node.nodeValue=next;}
-   }
+
   }
  }finally{translationBusy=false;if(translationQueued){translationQueued=false;queueMicrotask(updateStoryLanguage);}}
 }
