@@ -1,6 +1,6 @@
 {
   "name": "the-veil-of-aranor",
-  "version": "22.9.0",
+  "version": "22.9.2",
   "private": true,
   "description": "The Veil of Aranor - Definitive Presentation Upgrade",
   "main": "server.js",
@@ -13,7 +13,8 @@
     "nl:check": "node scripts/nl-catalog.mjs --check",
     "nl:audit": "node scripts/audit-nl.mjs",
     "nl:audit:check": "node scripts/audit-nl.mjs --check",
-    "test:localisation": "node scripts/test-localisation.mjs"
+    "test:localisation": "node scripts/test-localisation.mjs",
+    "test:character-creation": "node scripts/test-character-creation.mjs"
   },
   "dependencies": {
     "express": "^4.21.2",

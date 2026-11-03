@@ -1,0 +1,68 @@
+{
+  "scene_count": 147,
+  "rendered": 147,
+  "failures": [],
+  "page_errors": [],
+  "sample": [
+    {
+      "id": "intro",
+      "title": "De Resolute",
+      "turn": "Aan de beurt: Bob. Kies wat je held nu d"
+    },
+    {
+      "id": "storm",
+      "title": "De hemel breekt open",
+      "turn": "Aan de beurt: Bob. Kies wat je held nu d"
+    },
+    {
+      "id": "wave",
+      "title": "De golf",
+      "turn": "Aan de beurt: Bob. Kies wat je held nu d"
+    },
+    {
+      "id": "undercliff_wreck",
+      "title": "Onder de kliffen",
+      "turn": "Aan de beurt: Bob. Kies wat je held nu d"
+    },
+    {
+      "id": "sea_caves",
+      "title": "De Blauwe Grotten",
+      "turn": "Aan de beurt: Bob. Kies wat je held nu d"
+    },
+    {
+      "id": "wreck",
+      "title": "Een kust onder onbekende sterren",
+      "turn": "Aan de beurt: Bob. Kies wat je held nu d"
+    },
+    {
+      "id": "wreck_fire",
+      "title": "Vuur in het wrak",
+      "turn": "Aan de beurt: Bob. Kies wat je held nu d"
+    },
+    {
+      "id": "lost_marsh",
+      "title": "Het verdronken pad",
+      "turn": "Aan de beurt: Bob. Kies wat je held nu d"
+    },
+    {
+      "id": "marsh_lights",
+      "title": "Stemmen in het riet",
+      "turn": "Aan de beurt: Bob. Kies wat je held nu d"
+    },
+    {
+      "id": "road",
+      "title": "De Gebroken Weg",
+      "turn": "Aan de beurt: Bob. Kies wat je held nu d"
+    },
+    {
+      "id": "wolf_ring",
+      "title": "De stille kring",
+      "turn": "Aan de beurt: Bob. Kies wat je held nu d"
+    },
+    {
+      "id": "troll",
+      "title": "De Wortelbrug",
+      "turn": "Aan de beurt: Bob. Kies wat je held nu d"
+    }
+  ]
+}

@@ -72,9 +72,255 @@ function sendChallengeRoll(payload,button){veilCue('roll');
 }
 
 function player(){return state?.players.find(p=>p.id===me);}
-function emitJoin(mode){const name=$(mode+'Name').value.trim(), cls=$(mode+'Class').value, background=$(mode+'Background').value,portrait=portraitChoice[mode]||1;if(!name)return showError('Enter a hero name first.');if(mode==='join'){const code=$('joinCode').value.trim().toUpperCase();if(code.length!==5)return showError('Enter the five-letter room code.');socket.emit('joinRoom',{roomCode:code,name,cls,background,portrait});}else socket.emit('createRoom',{name,cls,background,portrait});}
+function emitJoin(mode){const name=$(mode+'Name').value.trim(), cls=canonicalClass($(mode+'Class').value), background=$(mode+'Background').value,portrait=portraitChoice[mode]||1;if(!name)return showError(runtimeUi('Enter a hero name first.'));if(!classes.includes(cls))return showError(runtimeUi('Select a hero class first.'));if(mode==='join'){const code=$('joinCode').value.trim().toUpperCase();if(code.length!==5)return showError(runtimeUi('Enter the five-letter room code.'));socket.emit('joinRoom',{roomCode:code,name,cls,background,portrait});}else socket.emit('createRoom',{name,cls,background,portrait});}
 // V22.9.1: translate composed runtime interface text at source, not via DOM scraping.
 const runtimeUiNl={
+ 'A room with that code is already active.':'Er is al een actieve kamer met die code.',
+ 'Allocate exactly 20 points, with no skill above 5.':'Verdeel precies 20 punten en geef geen vaardigheid meer dan 5 punten.',
+ 'Enter a hero name and class.':'Vul een heldennaam in en kies een klasse.',
+ 'Every player must lock their character first.':'Iedere speler moet eerst zijn personage vastleggen.',
+ 'It is not your turn.':'Je bent nog niet aan de beurt.',
+ 'Magic unlocks at the first expedition milestone.':'Magie wordt ontgrendeld bij de eerste mijlpaal van de expeditie.',
+ 'No unused power is available.':'Er is geen ongebruikte kracht beschikbaar.',
+ 'Only a Mage can cast this spell.':'Alleen een magiër kan deze spreuk uitspreken.',
+ 'Only the active hero can spend Hope here.':'Alleen de held die aan de beurt is kan hier Hoop besteden.',
+ 'Put at least one hero on each route.':'Plaats minstens één held op elke route.',
+ 'Reach the second expedition milestone or attain 6 in a skill.':'Bereik de tweede mijlpaal van de expeditie of haal niveau 6 in een vaardigheid.',
+ 'Return PIN not recognised for that room.':'De terugkeer-PIN wordt niet herkend voor deze kamer.',
+ 'Room not found. Check the code and try again.':'Kamer niet gevonden. Controleer de code en probeer opnieuw.',
+ 'That adventure is not active yet. Ask the host to restore it first.':'Dat avontuur is nog niet actief. Vraag de spelleider het eerst te herstellen.',
+ 'That approach belongs to a different class.':'Deze aanpak is voor een andere heldenklasse bedoeld.',
+ 'That campaign save could not be read.':'Het opgeslagen avontuur kon niet worden gelezen.',
+ 'That expedition has already begun. Returning player? Use “Return to Existing Adventure” with your room code and 4-digit Return PIN.':'Die expeditie is al begonnen. Wil je terugkeren? Gebruik je kamercode en viercijferige terugkeer-PIN.',
+ 'That hero has no wound to heal.':'Die held heeft geen verwondingen om te genezen.',
+ 'That room already has six players.':'Die kamer heeft al zes spelers.',
+ 'That saved campaign could not identify your hero.':'Je held kon niet worden herkend in het opgeslagen avontuur.',
+ 'That skill has reached the campaign maximum of 7.':'Die vaardigheid heeft het maximum van 7 bereikt.',
+ 'That talent is not available to your class.':'Dat talent is niet beschikbaar voor jouw klasse.',
+ 'The company needs 2 Hope to soften this setback.':'Het gezelschap heeft 2 Hoop nodig om deze tegenslag te verzachten.',
+ 'The roll hit an internal error. Your challenge is still active; retry the roll.':'Er is een interne fout opgetreden bij de worp. De uitdaging is nog actief; probeer de worp opnieuw.',
+ 'Use items on your turn.':'Gebruik voorwerpen wanneer je aan de beurt bent.',
+ 'Use this power during a challenge.':'Gebruik deze kracht tijdens een uitdaging.',
+ 'You do not have an unspent Skill Point.':'Je hebt geen ongebruikt vaardigheidspunt.',
+ 'Your power unlocks at the first expedition milestone.':'Je kracht wordt ontgrendeld bij de eerste mijlpaal van de expeditie.',
+
+ 'REST':'RUST',
+ 'BATTLE':'GEVECHT',
+ 'CONVERSATION':'GESPREK',
+ 'EXPLORATION':'VERKENNING',
+ 'STORY':'VERHAAL',
+ 'Character instinct:':'Inzicht van je held:',
+ 'Something you carry may matter:':'Iets wat je bij je draagt kan belangrijk zijn:',
+ 'White City Battle':'Slag om de Witte Stad',
+ 'Phase':'Fase',
+ 'Outer Gate':'Buitenpoort',
+ 'Civilians':'Burgers',
+ 'Beacon':'Baken',
+ 'held':'verdedigd',
+ 'contested':'bevochten',
+ 'evacuated':'geëvacueerd',
+ 'at risk':'in gevaar',
+ 'stable':'stabiel',
+ 'unstable':'instabiel',
+ 'PEOPLE':'PERSONEN',
+ 'CLUES & CONCLUSIONS':'AANWIJZINGEN EN CONCLUSIES',
+ 'UNANSWERED QUESTIONS':'ONBEANTWOORDE VRAGEN',
+ 'DECISIONS':'BESLISSINGEN',
+ 'WHERE YOU ARE':'WAAR JULLIE ZIJN',
+ 'RECENTLY':'RECENT',
+ 'KEY DECISIONS':'BELANGRIJKE BESLISSINGEN',
+ 'Important relationships will appear here.':'Belangrijke relaties verschijnen hier.',
+ 'Useful information will be recorded here.':'Nuttige informatie wordt hier bijgehouden.',
+ 'Nothing obvious remains unanswered.':'Er blijven geen duidelijke vragen onbeantwoord.',
+ 'Major choices will be remembered here.':'Belangrijke keuzes worden hier bewaard.',
+ 'The biggest questions have been answered.':'De belangrijkste vragen zijn beantwoord.',
+ 'No major decision has been recorded yet.':'Er is nog geen belangrijke beslissing vastgelegd.',
+ 'You have crossed paths.':'Jullie paden hebben elkaar gekruist.',
+ 'Why did Thorne recognise Aranor’s beacon so quickly?':'Waarom herkende Thorne het baken van Aranor zo snel?',
+ 'What are the beacons actually controlling?':'Wat regelen de bakens eigenlijk?',
+ 'Which of Aranor’s living peoples can the company trust?':'Welke levende volkeren van Aranor kan het gezelschap vertrouwen?',
+ 'Who should be allowed to control the Heart, if anyone?':'Wie mag het Hart besturen, als iemand dat al mag?',
+ 'The stolen Wayfinder Compass is twitching toward the old road.':'Het gestolen Wegwijzerkompas trilt in de richting van de oude weg.',
+ 'Nim’s token could change how the sentries receive you.':'Nims teken kan beïnvloeden hoe de wachters jullie ontvangen.',
+ 'The stolen Wayfinder Compass keeps pulling toward a fern-hidden approach.':'Het gestolen Wegwijzerkompas trekt steeds naar een doorgang tussen de varens.',
+ 'The Silver Key has finally reached the lock it seems made for.':'De Zilveren Sleutel is eindelijk bij het slot waarvoor hij lijkt gemaakt.',
+ 'Your Map Fragments may fit the gate markings.':'Je kaartfragmenten passen misschien bij de tekens op de poort.',
+ 'The Sunsteel Shield may let someone approach the Heart safely.':'Met het Zonnestaalschild kan iemand het Hart misschien veilig naderen.',
+ 'Veyra’s Signal Horn could call people who still owe the company a debt.':'Met Veyra’s signaalhoorn kun je misschien mensen oproepen die nog bij het gezelschap in het krijt staan.',
+ 'The golden light pulses like a deliberately cast signal rather than natural lightning.':'Het gouden licht pulseert als een doelbewust uitgezonden signaal, niet als gewone bliksem.',
+ 'One rune warns against opening the island’s older seals.':'Eén rune waarschuwt om de oude zegels van het eiland niet te verbreken.',
+ 'The six figures channel different energies into the same Heart; none is supposed to command it alone.':'De zes figuren leiden verschillende krachten naar hetzelfde Hart; geen van hen hoort het alleen te besturen.',
+ 'The stone is repeating stolen memories, not speaking with a living voice.':'De steen herhaalt gestolen herinneringen; het is geen levende stem.',
+ 'Vael’s relic seems to strengthen conviction while narrowing judgement.':'Vaels relikwie versterkt blijkbaar zijn overtuiging, maar vertroebelt zijn oordeel.',
+ 'The mirrors reveal possible memories and can be safely interrupted.':'De spiegels tonen mogelijke herinneringen en kunnen veilig onderbroken worden.',
+ 'The vision is sustained by an emotion, not an external enemy.':'Het visioen wordt in stand gehouden door een emotie, niet door een vijand van buitenaf.',
+ 'The Heart can distribute power safely only when its operators cooperate.':'Het Hart kan zijn kracht alleen veilig verdelen wanneer de bedieners samenwerken.',
+ 'The Beacon can shape power, but cannot decide who deserves to wield it.':'Het Baken kan kracht sturen, maar niet bepalen wie ze mag gebruiken.',
+ 'The stronger beams will hold long enough to free the trapped sailors if someone takes responsibility.':'De stevigere balken houden lang genoeg stand om de vastzittende matrozen te bevrijden, als iemand de leiding neemt.',
+ 'The troll stands between danger and the child, not simply between you and the bridge.':'De trol staat tussen het gevaar en het kind, niet zomaar tussen jullie en de brug.',
+ 'The closing doors have one narrow point where a defender can hold them.':'De sluitende deuren hebben één smal punt waar een verdediger ze kan tegenhouden.',
+ 'One defended staircase can protect the control team.':'Door één trap te verdedigen kun je het bedieningsteam beschermen.',
+ 'The inland tracks are purposeful and freshly made.':'De sporen landinwaarts zijn doelbewust en vers.',
+ 'The wolves are being driven by a larger predator beyond the trees.':'De wolven worden opgejaagd door een groter roofdier achter de bomen.',
+ 'A safe strip of firm ground lies away from the voices.':'Verder van de stemmen ligt een veilige strook stevige grond.',
+ 'Several old routes could bring allies to the city before dawn.':'Via verschillende oude routes kunnen bondgenoten de stad voor zonsopgang bereiken.',
+ 'Someone cut an expedition lock rather than smashing it.':'Iemand heeft een slot van de expeditie doorgesneden in plaats van het kapot te slaan.',
+ 'One mural panel has been moved recently and conceals a catch.':'Een paneel van de muurschildering is onlangs verplaatst en verbergt een grendel.',
+ 'The wax seal was copied by hand; the orders might be forged.':'Het lakzegel is met de hand nagemaakt; de bevelen zijn misschien vervalst.',
+ 'The same reflection repeats in a pattern that can be exploited.':'Dezelfde weerspiegeling herhaalt zich volgens een patroon dat je kunt benutten.',
+ 'The creature’s fear is stronger than its anger.':'De angst van het wezen is groter dan zijn woede.',
+ 'The voices take the shape of private regrets, not reliable memories.':'De stemmen nemen de vorm aan van persoonlijk berouw, niet van betrouwbare herinneringen.',
+ 'A familiar voice could reach the trapped hero.':'Een vertrouwde stem kan de ingesloten held misschien bereiken.',
+ 'Sacrifice is a choice to be shared, not imposed on the nearest hero.':'Een offer is een gezamenlijke keuze, geen plicht voor de held die het dichtstbij staat.',
+ 'The ship was struck by a solid object before the great wave.':'Voor de grote golf raakte een vast voorwerp het schip.',
+ 'The stone doors are a living machine with counterweights.':'De stenen deuren vormen een levende machine met tegengewichten.',
+ 'The mural conceals the track of the closing doors.':'De muurschildering verbergt de geleiding van de sluitende deuren.',
+ 'The sealed road was built with a second service route.':'Bij de verzegelde weg hoort nog een tweede onderhoudsroute.',
+ 'The controls have three configurations, each distributing power differently.':'De bediening heeft drie standen die elk de kracht anders verdelen.',
+
+ 'Ready':'Klaar',
+ 'Building':'Bezig met maken',
+ '✓ Character Locked':'✓ Personage vastgelegd',
+ 'Lock Character':'Personage vastleggen',
+ 'Everyone is ready.':'Iedereen is klaar.',
+ 'You can begin the expedition.':'Je kunt de expeditie beginnen.',
+ 'You are the':'Jij bent de',
+ 'host':'spelleider',
+ 'Start once every hero shows Ready.':'Begin zodra alle helden klaar zijn.',
+ 'Waiting for the host to begin. You can stay on this screen while everyone finishes their hero.':'Wachten tot de spelleider begint. Je kunt op dit scherm blijven terwijl iedereen zijn held afwerkt.',
+ 'Arcana — your magical speciality':'Arcana — jouw magische specialiteit',
+ 'Arcana helps you recognise ancient magic and enchantments. As a Mage, you also unlock Mana-powered spell choices during the adventure.':'Arcana helpt je oude magie en betoveringen herkennen. Als magiër ontgrendel je ook spreuken waarvoor je mana gebruikt.',
+ 'Arcana — available to every hero':'Arcana — beschikbaar voor elke held',
+ 'You may assign points to Arcana to understand magical symbols and ancient devices. Only Mages can cast Mana-powered spells. You do not need Arcana to succeed in the adventure.':'Je kunt punten in Arcana investeren om magische symbolen en oude apparaten te begrijpen. Alleen magiërs kunnen spreuken met mana uitspreken. Arcana is niet nodig om het avontuur te voltooien.',
+ 'YOUR CLASS PATH':'JOUW KLASSEPAD',
+ 'Explore Aranor to unlock three expedition milestones for every hero.':'Verken Aranor om drie mijlpalen voor elke held te ontgrendelen.',
+ 'Arcana helps uncover magic and mechanisms. You can also spend Mana on unique spell choices at ancient gates and chambers.':'Arcana onthult magie en mechanismen. Je kunt ook mana gebruiken voor bijzondere spreuken bij oude poorten en kamers.',
+ 'Spend Focus for +1 on a relevant roll.':'Gebruik focus voor +1 op een passende worp.',
+ 'Mana and Focus replenish at milestones and through exploration.':'Mana en focus worden aangevuld bij mijlpalen en tijdens het verkennen.',
+ 'Channel':'Gebruik',
+ 'SKILLS':'VAARDIGHEDEN',
+ 'Current abilities':'Huidige vaardigheden',
+ 'Starting cap 5 · Campaign cap 7':'Beginmaximum 5 · Campagnemaximum 7',
+ 'Choose where to spend your earned Skill Point. The choice is permanent for this campaign.':'Kies waaraan je je verdiende vaardigheidspunt besteedt. Deze keuze blijft gelden voor het avontuur.',
+ 'Participating in challenges earns Growth. Every 5 Growth becomes one Skill Point you can allocate here.':'Door aan uitdagingen deel te nemen verdien je groei. Elke 5 groeipunten geven één vaardigheidspunt om hier toe te kennen.',
+ 'ADVANCED PATH UNLOCKED':'GEAVANCEERD PAD ONTGRENDELD',
+ 'Choose one permanent talent':'Kies één blijvend talent',
+ 'Reaching 6 in a skill marks a turning point for your hero.':'Een 6 in een vaardigheid betekent een keerpunt voor je held.',
+ 'EQUIPMENT & IDENTITY':'UITRUSTING EN IDENTITEIT',
+ 'Earned through repeated choices and successful actions.':'Verdiend door terugkerende keuzes en geslaagde acties.',
+ 'Equipment:':'Uitrusting:',
+ 'None':'Geen',
+ 'Condition':'Staat',
+ 'Your equipment is damaged. Upgrade bonuses are offline until a smith repairs it.':'Je uitrusting is beschadigd. Verbeteringsbonussen gelden pas weer nadat een smid ze heeft hersteld.',
+ 'Upgrades:':'Verbeteringen:',
+ 'None yet':'Nog geen',
+ 'Aranorian binding:':'Aranorische verbinding:',
+ '+1 on dangerous checks involving ancient guardians, beacon machinery and Heart systems.':'+1 bij gevaarlijke proeven met oude wachters, bakenmachines en systemen van het Hart.',
+ 'Fresh service:':'Vers onderhoud:',
+ 'Private insights discovered:':'Privé-inzichten ontdekt:',
+ 'Any personal clues your hero notices will be saved here for later reference.':'Persoonlijke aanwijzingen van je held worden hier bewaard.',
+ 'Dice mastery:':'Dobbelsteenbeheersing:',
+ 'Skills at 6+ roll with Advantage. An earned reputation at 3+ adds +1 when an action clearly fits that identity.':'Bij vaardigheden van 6 of meer gooi je met voordeel. Een reputatie van 3 of meer geeft +1 wanneer een actie duidelijk bij die reputatie past.',
+ 'Your hero will appear here when you join.':'Je held verschijnt hier zodra je meedoet.',
+ 'Decrease':'Verlaag',
+ 'Increase':'Verhoog',
+
+ 'a steady protector who is at their best when someone has to hold the line':'een standvastige beschermer die op zijn best is wanneer iemand de linie moet houden',
+ 'a watchful pathfinder who reads terrain, movement and danger before most people see it':'een oplettende spoorzoeker die terrein, bewegingen en gevaar eerder opmerkt dan de meesten',
+ 'a quick, quiet problem-solver who notices doors, shadows and opportunities other people miss':'een snelle, stille probleemoplosser die deuren, schaduwen en kansen ziet die anderen missen',
+ 'a scholar of strange forces who looks for patterns beneath what everyone else calls impossible':'een geleerde van mysterieuze krachten die patronen ontdekt in wat anderen onmogelijk noemen',
+ 'a resilient healer and calm presence when fear begins to spread':'een veerkrachtige genezer die rust brengt wanneer angst om zich heen grijpt',
+ 'a practical maker who sees mechanisms, weaknesses and solutions where others see obstacles':'een handige uitvinder die mechanismen, zwakke punten en oplossingen ziet waar anderen hindernissen zien',
+ 'with the instincts of someone raised around rank, obligation and difficult conversations':'met de instincten van iemand die opgroeide tussen rangen, plichten en moeilijke gesprekken',
+ 'with the habits of someone comfortable beyond roads and settled country':'met de gewoonten van iemand die zich thuis voelt buiten de bewoonde wereld',
+ 'with a scholar’s instinct to ask what happened here before deciding what happens next':'met de nieuwsgierigheid van een geleerde die eerst wil weten wat hier gebeurde',
+ 'with the balance and endurance of someone used to storms, ropes and long watches':'met het evenwicht en uithoudingsvermogen van iemand die stormen en lange wachten gewend is',
+ 'with a streetwise eye for danger, lies and the quickest way out':'met een scherp oog voor gevaar, leugens en de snelste uitweg',
+ 'with a craftsperson’s habit of understanding how things fit together':'met het inzicht van een ambachtsman in hoe alles in elkaar past',
+ 'an adventurer with a useful set of talents':'een avonturier met nuttige talenten',
+ 'Strongest abilities:':'Sterkste vaardigheden:',
+ 'The golden light on the horizon':'Het gouden licht aan de horizon',
+ 'The Black Storm':'De Zwarte Storm',
+ 'A wall of water rises':'Een muur van water rijst op',
+ 'A shore beneath unknown stars':'Een kust onder onbekende sterren',
+ 'The Broken Road':'De Gebroken Weg',
+ 'The Bridge of Roots':'De Wortelbrug',
+ 'The gates of the Green Ruins':'De poorten van de Groene Ruïnes',
+ 'Voices among the wreckage':'Stemmen tussen het wrakhout',
+ 'Ruins that move when no one watches':'Ruïnes die bewegen wanneer niemand kijkt',
+ 'Six figures carved in stone':'Zes figuren uitgehouwen in steen',
+ 'A quiet fire beneath unknown stars':'Een rustig vuur onder onbekende sterren',
+ 'Painted shields among the trees':'Beschilderde schilden tussen de bomen',
+ 'Lady Serayne’s council':'De raad van Vrouwe Serayne',
+ 'One medicine, two desperate needs':'Eén geneesmiddel, twee dringende noden',
+ 'The armoury beneath the broken keep':'De wapenkamer onder de vervallen burcht',
+ 'Black sails on the western sea':'Zwarte zeilen op de westelijke zee',
+ 'The Order of Ash has landed':'De Orde van de As is aan land',
+ 'Commander Vael asks to speak':'Commandant Vael vraagt om een gesprek',
+ 'The silver key finally fits':'De zilveren sleutel past eindelijk',
+ 'The coast erupts into pursuit':'Langs de kust begint de achtervolging',
+ 'The sealed road beneath the mountain':'De verzegelde weg onder de berg',
+ 'Six stations around an ancient machine':'Zes posten rond een eeuwenoude machine',
+ 'The Heart of Aranor':'Het Hart van Aranor',
+ 'The mountain begins to fall':'De berg begint in te storten',
+ 'The last road to the beacon':'De laatste weg naar het baken',
+ 'Old choices return as allies':'Oude keuzes brengen bondgenoten terug',
+ 'Three fires at once':'Drie brandhaarden tegelijk',
+ 'The Last Beacon':'Het Laatste Baken',
+
+ 'Welcome back':'Welkom terug',
+ 'No recent room was found.':'Geen recente kamer gevonden.',
+ 'No saved campaign was found in this browser.':'Geen opgeslagen avontuur gevonden in deze browser.',
+ 'Paste the campaign backup key first.':'Plak eerst de back-upsleutel van het avontuur.',
+ 'Enter your four-digit Return PIN.':'Voer je terugkeer-PIN van vier cijfers in.',
+ 'Return to the main menu? Your hero and campaign progress will be kept.':'Terug naar het hoofdmenu? Je held en de voortgang van het avontuur blijven bewaard.',
+ 'Forget the saved campaign on this browser? This does not stop a room that is currently running.':'Het opgeslagen avontuur in deze browser vergeten? Een actieve kamer wordt hiermee niet gestopt.',
+ 'Private':'Privé',
+ 'insight':'inzicht',
+ 'Only your character receives this clue. It has been saved in your Hero sheet.':'Alleen jouw personage krijgt deze aanwijzing. Je vindt ze terug op je heldenfiche.',
+ 'YOUR COMPANY':'JULLIE GEZELSCHAP',
+ 'The people aboard the Resolute':'De mensen aan boord van de Resolute',
+ 'Captain Veyra has spent eighteen days learning what each of you can do. Now the expedition may finally need all of it.':'Kapitein Veyra heeft achttien dagen lang ontdekt wat jullie allemaal kunnen. Nu kan de expeditie ieder van jullie nodig hebben.',
+ 'Your hero portrait':'Portret van je held',
+ 'SFX on':'Geluid aan',
+ 'SFX off':'Geluid uit',
+ 'Ambience on':'Sfeergeluid aan',
+ 'Ambience off':'Sfeergeluid uit',
+ 'Copy code':'Kopieer code',
+ 'Copied!':'Gekopieerd!',
+ 'Auto-saved':'Automatisch opgeslagen',
+ 'background':'achtergrond',
+ 'Edge':'Voordeel',
+ 'Condition':'Staat',
+ 'Mana':'Mana',
+ 'Focus':'Focus',
+ 'Expedition captain':'Expeditiekapitein',
+ 'Goblin survivor':'Goblin-overlevende',
+ 'Leader of the Green Court':'Leider van het Groene Hof',
+ 'Scholar of Aranor':'Geleerde van Aranor',
+ 'Commander of the Order of Ash':'Commandant van de Orde van de As',
+ 'Teamwork':'Samenwerking',
+ 'Solo':'Solo',
+ 'Normal':'Normaal',
+ 'Hard':'Moeilijk',
+ 'The company’s chosen future:':'De toekomst die het gezelschap heeft gekozen:',
+ 'When the Last Beacon was surrounded, these allies answered:':'Toen het Laatste Baken omsingeld was, kwamen deze bondgenoten te hulp:',
+ 'What your journey changed':'Wat jullie reis heeft veranderd',
+ 'Roads taken:':'Afgelegde routes:',
+ 'Relationships carried to the end:':'Band met anderen aan het einde:',
+ 'Still in the company’s pack:':'Nog in de rugzak van het gezelschap:',
+ 'The Company at Journey’s End':'Het gezelschap aan het einde van de reis',
+ 'Highest skill:':'Hoogste vaardigheid:',
+ 'Unspent Skill Points':'Niet-bestede vaardigheidspunten',
+ 'LAST KEEPER':'LAATSTE WACHTER',
+ 'Wounds':'Verwondingen',
+
+ 'Enter a hero name and class.':'Vul een heldennaam in en kies een klasse.',
+ 'Enter a hero name first.':'Vul eerst een heldennaam in.', 'Select a hero class first.':'Kies eerst een heldenklasse.', 'Enter the five-letter room code.':'Vul de kamercode van vijf letters in.',
+ 'background':'achtergrond','Edge':'Voordeel','Wounds':'Verwondingen','Growth':'Groei','Expedition stage':'Expeditiefase','Skill Point available':'vaardigheidspunt beschikbaar','Skill Points available':'vaardigheidspunten beschikbaar','Talent:':'Talent:', 'Health':'Gezondheid','Skill points':'Vaardigheidspunten',
+ 'Guardian':'Beschermer','Trailwise':'Spoorzoeker','Shadowstep':'Schaduwstap','Arcane Sight':'Magisch inzicht','Mend':'Genezing','Improviser':'Uitvinder',
+ 'YOUR COMPANY':'JULLIE GEZELSCHAP','The people aboard the Resolute':'De mensen aan boord van de Resolute',
+ 'Endurance':'Uithoudingsvermogen',
  'Your turn,':'Aan de beurt:', 'Choose what your hero does next.':'Kies wat je held nu doet.',
  'Waiting for':'Wachten op','Your group':'Jouw groep','another group':'een andere groep',
  'has reached the rendezvous.':'heeft het ontmoetingspunt bereikt.',
@@ -129,8 +375,60 @@ const runtimeUiNl={
  '2 successes = full success · 1 = partial success · 0 = setback.':'2 successen = volledig succes · 1 = gedeeltelijk succes · 0 = tegenslag.',
  '3 successes = full success · 2 = partial success · 0–1 = setback.':'3 successen = volledig succes · 2 = gedeeltelijk succes · 0–1 = tegenslag.'
 };
-function runtimeUi(key){return selectedLanguage==='nl'?(runtimeUiNl[key]||sceneLocaleText(key)):sceneLocaleText(key);}
+function runtimeUi(key){return selectedLanguage==='nl'?(runtimeUiNl[key]||characterLabelsNl?.[key]||sceneLocaleText(key)):sceneLocaleText(key);}
 function runtimeSkill(key){return runtimeUi(key);}
+// Structured event-log localisation. Keeps player names and saved server data untouched.
+function localizeLogLine(text){
+ const line=String(text||'');if(selectedLanguage!=='nl')return line;
+ let m;
+ if((m=/^Round (\d+) begins\. Support actions refresh\.$/.exec(line)))return `Ronde ${m[1]} begint. Ondersteuningsacties worden opnieuw beschikbaar.`;
+ if((m=/^Item discovered: (.+)\.$/.exec(line)))return `Voorwerp gevonden: ${runtimeUi(m[1])}.`;
+ if((m=/^(.+) earned (\d+) Skill Points?\.$/.exec(line)))return `${m[1]} heeft ${m[2]} vaardigheidspunt${Number(m[2])===1?'':'en'} verdiend.`;
+ if((m=/^(.+) has become known as (.+)\.$/.exec(line)))return `${m[1]} staat nu bekend als ${runtimeUi(m[2])}.`;
+ if((m=/^(.+) stepped away from the table\.$/.exec(line)))return `${m[1]} heeft de speeltafel even verlaten.`;
+ if((m=/^Campaign restored at (.+)\.$/.exec(line)))return `Avontuur hervat bij ${runtimeUi(m[1])}.`;
+ if((m=/^(.+) improved (Strength|Agility|Endurance|Awareness|Survival|Stealth|Knowledge|Craft|Influence|Spirit|Arcana) to (\d+)\.$/.exec(line)))return `${m[1]} heeft ${runtimeSkill(m[2])} verhoogd naar ${m[3]}.`;
+ if((m=/^(.+) channels (Mana|Focus) for the next relevant check\.$/.exec(line)))return `${m[1]} gebruikt ${m[2]} voor de volgende passende proef.`;
+ if((m=/^(.+) unlocked the (.+) talent\.$/.exec(line)))return `${m[1]} heeft het talent ${runtimeUi(m[2])} ontgrendeld.`;
+ if(line==='The adventure begins.')return 'Het avontuur begint.';
+ if((m=/^The company split: (.+) and (.+)\.$/.exec(line)))return `Het gezelschap is gesplitst: ${runtimeUi(m[1])} en ${runtimeUi(m[2])}.`;
+ if((m=/^The separated groups reunited at (.+)\.$/.exec(line)))return `De afgesplitste groepen zijn herenigd bij ${runtimeUi(m[1])}.`;
+ if((m=/^(.+): (.+) — (partial success|success|setback)\.$/.exec(line)))return `${m[1]}: ${runtimeUi(m[2])} — ${{'partial success':'gedeeltelijk succes','success':'succes','setback':'tegenslag'}[m[3]]}.`;
+ return runtimeUi(line);
+}
+
+// Localised labels must never replace network identifiers (e.g. Knight, Noble).
+// This compatibility mapper also accepts a translated value from an older cached page.
+const characterLabelsNl={
+ 'Noble — Influence':'Edele — Overtuigingskracht',
+ 'Outlander — Survival':'Buitenstaander — Overleven',
+ 'Scholar — Knowledge':'Geleerde — Kennis',
+ 'Sailor — Endurance':'Zeeman — Uithoudingsvermogen',
+ 'Streetwise — Stealth':'Straatwijs — Sluipen',
+ 'Artisan — Craft':'Ambachtsman — Vakmanschap',
+ 'Guardian — excels at holding the line, protecting allies and forcing a path through danger.':'Beschermer — houdt stand, beschermt bondgenoten en baant een weg door gevaar.',
+ 'Trailwise — gains +1 to Awareness or Survival checks outdoors.':'Spoorzoeker — krijgt +1 bij proeven op Oplettendheid of Overleven in de buitenlucht.',
+ 'Shadowstep — built for stealth, infiltration, traps and rapid improvisation.':'Schaduwstap — gespecialiseerd in sluipen, infiltratie, vallen en snelle improvisatie.',
+ 'Arcane Sight — reads forgotten enchantments and can spend Mana on rare magical story options.':'Magisch inzicht — doorziet vergeten betoveringen en kan mana inzetten voor bijzondere magische keuzes.',
+ 'Mend — resilient spiritual healer and the party’s calm centre in moments of fear.':'Genezing — een weerbare spirituele genezer die het gezelschap rustig houdt in angstige momenten.',
+ 'Improviser — gains +1 to Craft checks; invaluable with mechanisms, repairs and construction.':'Uitvinder — krijgt +1 bij proeven op Vakmanschap; onmisbaar bij mechanismen, reparaties en bouw.',
+ 'Raised around courts, duty and difficult conversations.':'Opgegroeid aan hoven, met plichten en moeilijke gesprekken.',
+ 'Comfortable far from roads, maps and civilisation.':'Voelt zich thuis ver van wegen, kaarten en beschaving.',
+ 'Trained to recognise history, symbols and forgotten ideas.':'Geleerd om geschiedenis, symbolen en vergeten ideeën te herkennen.',
+ 'Used to storms, ropes, cramped quarters and hard work.':'Gewend aan stormen, touwen, krappe ruimtes en hard werk.',
+ 'Quick at reading danger, locks and people who lie.':'Herkent snel gevaar, sloten en mensen die liegen.',
+ 'A practical maker who understands tools and how things fit together.':'Een handige maker die werktuigen en constructies begrijpt.',
+};
+function characterText(source){return selectedLanguage==='nl'?(characterLabelsNl[source]||runtimeUi(source)):runtimeUi(source);}
+function canonicalClass(value){if(classes.includes(value))return value;return classes.find(c=>runtimeUiNl[c]===value||characterLabelsNl[c]===value)||value;}
+function refreshCharacterCreationLocale(){
+ for(const mode of ['create','join']){
+   const classSelect=$(mode+'Class'),backgroundSelect=$(mode+'Background');
+   if(classSelect){const chosen=canonicalClass(classSelect.value);for(const option of classSelect.options){const id=canonicalClass(option.value);if(classes.includes(id)){option.value=id;option.textContent=runtimeUi(id);}}if(classes.includes(chosen))classSelect.value=chosen;renderClassPreview(mode+'Class',mode+'ClassInfo',mode);}
+   if(backgroundSelect){const chosen=backgroundSelect.value;for(const option of backgroundSelect.options){const id=option.value;if(backgrounds[id])option.textContent=runtimeUi(id)+' — '+runtimeSkill(backgrounds[id].edge);}backgroundSelect.value=chosen;}
+ }
+}
+
 function savedSceneTitle(id){try{return localizedScene(id)?.title||String(id).replaceAll('_',' ');}catch{return String(id).replaceAll('_',' ');}}
 function refreshSavedCampaignUI(){
   const panel=$('savedCampaignPanel'),rejoin=$('rejoinPanel');campaignSave=readJson('lostExpeditionCampaign');sessionInfo=readJson('lostExpeditionSession');
@@ -160,26 +458,26 @@ function openHomeFlow(mode='create'){
 }
 function closeHomeFlow(){ $('homeFlow')?.classList.add('hidden'); }
 function copyText(text,button,label='Copied!'){if(!text)return;const done=()=>{if(button){const old=button.textContent;button.textContent=label;setTimeout(()=>button.textContent=old,1600);}};if(navigator.clipboard?.writeText)navigator.clipboard.writeText(text).then(done).catch(()=>{prompt('Copy this backup key:',text)});else prompt('Copy this backup key:',text);}
-function renderPortraitPicker(mode){const cls=$(mode+'Class').value,box=$(mode+'Portraits');if(!box)return;box.innerHTML=portraitImages[cls].map((src,i)=>`<button type="button" class="portrait-choice ${portraitChoice[mode]===i+1?'selected':''}" data-p="${i+1}"><img src="${src}" alt="${cls}: ${['Male, lighter skin','Male, darker skin','Female, lighter skin','Female, darker skin'][i]}" title="${['Male · lighter skin','Male · darker skin','Female · lighter skin','Female · darker skin'][i]}"></button>`).join('');box.querySelectorAll('.portrait-choice').forEach(b=>b.onclick=()=>{portraitChoice[mode]=Number(b.dataset.p);renderPortraitPicker(mode);renderClassPreview(mode+'Class',mode+'ClassInfo',mode);});}
-function renderClassPreview(selectId,boxId,mode=selectId.startsWith('create')?'create':'join'){const c=$(selectId).value,i=classInfo[c];$(boxId).innerHTML=`<img class="class-portrait" src="${portraitPath(c,portraitChoice[mode])}" alt="${c} portrait"><div><strong>${i.icon} ${c}</strong><br>${i.gift}</div>`;}
-['createClass','joinClass'].forEach(id=>{$(id).innerHTML=classes.map(c=>`<option>${c}</option>`).join('');$(id).addEventListener('change',()=>{const mode=id.startsWith('create')?'create':'join';portraitChoice[mode]=1;renderClassPreview(id,id==='createClass'?'createClassInfo':'joinClassInfo',mode);renderPortraitPicker(mode);});});
+function renderPortraitPicker(mode){const cls=canonicalClass($(mode+'Class').value),box=$(mode+'Portraits');if(!box)return;box.innerHTML=portraitImages[cls].map((src,i)=>`<button type="button" class="portrait-choice ${portraitChoice[mode]===i+1?'selected':''}" data-p="${i+1}"><img src="${src}" alt="${cls}: ${['Male, lighter skin','Male, darker skin','Female, lighter skin','Female, darker skin'][i]}" title="${['Male · lighter skin','Male · darker skin','Female · lighter skin','Female · darker skin'][i]}"></button>`).join('');box.querySelectorAll('.portrait-choice').forEach(b=>b.onclick=()=>{portraitChoice[mode]=Number(b.dataset.p);renderPortraitPicker(mode);renderClassPreview(mode+'Class',mode+'ClassInfo',mode);});}
+function renderClassPreview(selectId,boxId,mode=selectId.startsWith('create')?'create':'join'){const c=canonicalClass($(selectId).value),i=classInfo[c];if(!i)return;$(boxId).innerHTML=`<img class="class-portrait" src="${portraitPath(c,portraitChoice[mode])}" alt="${esc(runtimeUi(c))}"><div><strong>${i.icon} ${esc(runtimeUi(c))}</strong><br>${esc(characterText(i.gift))}</div>`;}
+['createClass','joinClass'].forEach(id=>{$(id).innerHTML=classes.map(c=>`<option value="${c}">${esc(runtimeUi(c))}</option>`).join('');$(id).addEventListener('change',()=>{const mode=id.startsWith('create')?'create':'join';portraitChoice[mode]=1;renderClassPreview(id,id==='createClass'?'createClassInfo':'joinClassInfo',mode);renderPortraitPicker(mode);});});
 renderClassPreview('createClass','createClassInfo','create');renderClassPreview('joinClass','joinClassInfo','join');renderPortraitPicker('create');renderPortraitPicker('join');
-['createBackground','joinBackground'].forEach(id=>{if(!$(id))return;$(id).innerHTML=Object.entries(backgrounds).map(([k,v])=>`<option value="${k}">${k} — ${v.edge}</option>`).join('');});
+['createBackground','joinBackground'].forEach(id=>{if(!$(id))return;$(id).innerHTML=Object.entries(backgrounds).map(([k,v])=>`<option value="${k}">${esc(runtimeUi(k))} — ${esc(runtimeSkill(v.edge))}</option>`).join('');});
 
 document.addEventListener('pointerdown',()=>{
   try{const AC=window.AudioContext||window.webkitAudioContext;if(AC&&!playSound.ctx)playSound.ctx=new AC();if(playSound.ctx?.state==='suspended')playSound.ctx.resume();if(state?.phase==='playing'&&ambientOn)updateAmbience(state.scene,true);}catch{}
 },{once:true});
 
 $('createBtn').onclick=()=>emitJoin('create');$('joinBtn').onclick=()=>emitJoin('join');$('joinCode').addEventListener('input',e=>e.target.value=e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,''));
-$('copyRoomBtn').onclick=async()=>{try{await navigator.clipboard.writeText(roomCode);$('copyRoomBtn').textContent='Copied!';setTimeout(()=>$('copyRoomBtn').textContent='Copy code',1400);}catch{$('copyRoomBtn').textContent=roomCode;}};
-if($('soundToggle'))$('soundToggle').onclick=()=>{audioOn=!audioOn;$('soundToggle').textContent=audioOn?'🔊 SFX on':'🔇 SFX off';if(audioOn)playSound('success');};
-if($('ambientToggle')){$('ambientToggle').textContent=ambientOn?'🌿 Ambience on':'🌿 Ambience off';$('ambientToggle').onclick=()=>{ambientOn=!ambientOn;writeJson('lostExpeditionAmbient',ambientOn);$('ambientToggle').textContent=ambientOn?'🌿 Ambience on':'🌿 Ambience off';if(ambientOn&&state?.phase==='playing')updateAmbience(state.scene,true);else stopAmbience();};}
-if($('rejoinLastBtn'))$('rejoinLastBtn').onclick=()=>{sessionInfo=readJson('lostExpeditionSession');if(!sessionInfo?.roomCode||!sessionInfo?.resumeToken)return showError('No recent room was found.');socket.emit('resumeRoom',{roomCode:sessionInfo.roomCode,resumeToken:sessionInfo.resumeToken});};
-if($('continueSavedBtn'))$('continueSavedBtn').onclick=()=>{campaignSave=readJson('lostExpeditionCampaign');sessionInfo=readJson('lostExpeditionSession');if(!campaignSave?.saveToken||!sessionInfo?.resumeToken)return showError('No saved campaign was found in this browser.');socket.emit('restoreCampaign',{saveToken:campaignSave.saveToken,resumeToken:sessionInfo.resumeToken});};
+$('copyRoomBtn').onclick=async()=>{try{await navigator.clipboard.writeText(roomCode);$('copyRoomBtn').textContent=runtimeUi('Copied!');setTimeout(()=>$('copyRoomBtn').textContent=runtimeUi('Copy code'),1400);}catch{$('copyRoomBtn').textContent=roomCode;}};
+if($('soundToggle'))$('soundToggle').onclick=()=>{audioOn=!audioOn;$('soundToggle').textContent=audioOn?'🔊 '+runtimeUi('SFX on'):'🔇 '+runtimeUi('SFX off');if(audioOn)playSound('success');};
+if($('ambientToggle')){$('ambientToggle').textContent=ambientOn?'🌿 '+runtimeUi('Ambience on'):'🌿 '+runtimeUi('Ambience off');$('ambientToggle').onclick=()=>{ambientOn=!ambientOn;writeJson('lostExpeditionAmbient',ambientOn);$('ambientToggle').textContent=ambientOn?'🌿 '+runtimeUi('Ambience on'):'🌿 '+runtimeUi('Ambience off');if(ambientOn&&state?.phase==='playing')updateAmbience(state.scene,true);else stopAmbience();};}
+if($('rejoinLastBtn'))$('rejoinLastBtn').onclick=()=>{sessionInfo=readJson('lostExpeditionSession');if(!sessionInfo?.roomCode||!sessionInfo?.resumeToken)return showError(runtimeUi('No recent room was found.'));socket.emit('resumeRoom',{roomCode:sessionInfo.roomCode,resumeToken:sessionInfo.resumeToken});};
+if($('continueSavedBtn'))$('continueSavedBtn').onclick=()=>{campaignSave=readJson('lostExpeditionCampaign');sessionInfo=readJson('lostExpeditionSession');if(!campaignSave?.saveToken||!sessionInfo?.resumeToken)return showError(runtimeUi('No saved campaign was found in this browser.'));socket.emit('restoreCampaign',{saveToken:campaignSave.saveToken,resumeToken:sessionInfo.resumeToken});};
 if($('copySaveHomeBtn'))$('copySaveHomeBtn').onclick=()=>copyText(readJson('lostExpeditionCampaign')?.saveToken,$('copySaveHomeBtn'));
-if($('forgetSaveBtn'))$('forgetSaveBtn').onclick=()=>{if(confirm('Forget the saved campaign on this browser? This does not stop a room that is currently running.')){clearKey('lostExpeditionCampaign');clearKey('lostExpeditionSession');campaignSave=null;sessionInfo=null;refreshSavedCampaignUI();}};
-if($('restoreBackupBtn'))$('restoreBackupBtn').onclick=()=>{const key=$('backupKeyInput').value.trim();if(!key)return showError('Paste the campaign backup key first.');socket.emit('restoreCampaign',{saveToken:key,asHost:true});};
-refreshSavedCampaignUI();
+if($('forgetSaveBtn'))$('forgetSaveBtn').onclick=()=>{if(confirm(runtimeUi('Forget the saved campaign on this browser? This does not stop a room that is currently running.'))){clearKey('lostExpeditionCampaign');clearKey('lostExpeditionSession');campaignSave=null;sessionInfo=null;refreshSavedCampaignUI();}};
+if($('restoreBackupBtn'))$('restoreBackupBtn').onclick=()=>{const key=$('backupKeyInput').value.trim();if(!key)return showError(runtimeUi('Paste the campaign backup key first.'));socket.emit('restoreCampaign',{saveToken:key,asHost:true});};
+// Saved campaign UI is initialized after scene definitions and language helpers.
 
 if($('createAdventureCta')) $('createAdventureCta').onclick=()=>openHomeFlow('create');
 if($('joinAdventureCta')) $('joinAdventureCta').onclick=()=>openHomeFlow('join');
@@ -190,16 +488,16 @@ if($('homeFlowBack')) $('homeFlowBack').onclick=()=>closeHomeFlow();
 
 if($('returnCode'))$('returnCode').addEventListener('input',e=>e.target.value=e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,''));
 if($('returnPin'))$('returnPin').addEventListener('input',e=>e.target.value=e.target.value.replace(/\D/g,'').slice(0,4));
-if($('returnAdventureBtn'))$('returnAdventureBtn').onclick=()=>{const code=$('returnCode').value.trim().toUpperCase(),pin=$('returnPin').value.trim();if(code.length!==5)return showError('Enter the five-letter room code.');if(pin.length!==4)return showError('Enter your four-digit Return PIN.');socket.emit('returnToRoom',{roomCode:code,returnPin:pin});};
+if($('returnAdventureBtn'))$('returnAdventureBtn').onclick=()=>{const code=$('returnCode').value.trim().toUpperCase(),pin=$('returnPin').value.trim();if(code.length!==5)return showError(runtimeUi('Enter the five-letter room code.'));if(pin.length!==4)return showError(runtimeUi('Enter your four-digit Return PIN.'));socket.emit('returnToRoom',{roomCode:code,returnPin:pin});};
 function returnToMainMenu(){
   if(voiceJoined)leaveVoice();stopAmbience();
   if(state&&me)socket.emit('leaveRoomView');
   me=null;state=null;roomCode='';lastSceneSeen=null;lastRollSeen='';dismissedRollKey='';pendingStoryBridge=null;previousSnapshot=null;show('home');refreshSavedCampaignUI();
 }
-document.querySelectorAll('.menuBtn').forEach(b=>b.addEventListener('click',()=>{if(confirm('Return to the main menu? Your hero and campaign progress will be kept.'))returnToMainMenu();}));
+document.querySelectorAll('.menuBtn').forEach(b=>b.addEventListener('click',()=>{if(confirm(runtimeUi('Return to the main menu? Your hero and campaign progress will be kept.')))returnToMainMenu();}));
 socket.on('leftRoomView',()=>{show('home');refreshSavedCampaignUI();});
 
-socket.on('errorMsg',showError);
+socket.on('errorMsg',msg=>showError(runtimeUi(msg)));
 socket.on('connect',()=>{
   refreshSavedCampaignUI();
   if(!autoResumeTried&&sessionInfo?.roomCode&&sessionInfo?.resumeToken){autoResumeTried=true;socket.emit('resumeRoom',{roomCode:sessionInfo.roomCode,resumeToken:sessionInfo.resumeToken});}
@@ -209,7 +507,7 @@ function acceptIdentity(x,resetStats=false){me=x.playerId;roomCode=x.roomCode;st
 socket.on('joined',x=>{acceptIdentity(x,true);show('lobby');});
 socket.on('resumed',x=>{acceptIdentity(x,false);setTimeout(()=>{if(state?.phase==='playing')showConsequence('Welcome back',`You rejoin the company at ${scenes[state.scene]?.title||'the current scene'}. Tap Recap for the last few events.`, 'good');},650);});
 socket.on('campaignSave',x=>{campaignSave=x;writeJson('lostExpeditionCampaign',x);refreshSavedCampaignUI();if($('saveStatus'))$('saveStatus').textContent=`✓ Auto-saved · ${new Date(x.updatedAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`;});
-socket.on('secret',x=>{const box=$('secret');box.innerHTML=`<b>🔒 Private ${esc(x.title||'insight')}</b><br>${esc(x.text)}<div class="small muted" style="margin-top:6px">Only your character receives this clue. It has been saved in your Hero sheet.</div>`;box.classList.remove('hidden');const key=`${x.title||'insight'}|${x.text}`;if(!privateClues.some(c=>c.key===key)){privateClues.unshift({key,title:x.title||'Private insight',text:x.text,seenAt:Date.now()});privateClues=privateClues.slice(0,20);savePrivateClues();}clearTimeout(socket._secretTimer);socket._secretTimer=setTimeout(()=>box.classList.add('hidden'),16000);if($('heroSheetModal')&&!$('heroSheetModal').classList.contains('hidden'))renderHeroSheet();});
+socket.on('secret',x=>{const box=$('secret');box.innerHTML=`<b>🔒 Private ${esc(x.title||'insight')}</b><br>${esc(runtimeUi(x.text))}<div class="small muted" style="margin-top:6px">Only your character receives this clue. It has been saved in your Hero sheet.</div>`;box.classList.remove('hidden');const key=`${x.title||'insight'}|${x.text}`;if(!privateClues.some(c=>c.key===key)){privateClues.unshift({key,title:x.title||'Private insight',text:x.text,seenAt:Date.now()});privateClues=privateClues.slice(0,20);savePrivateClues();}clearTimeout(socket._secretTimer);socket._secretTimer=setTimeout(()=>box.classList.add('hidden'),16000);if($('heroSheetModal')&&!$('heroSheetModal').classList.contains('hidden'))renderHeroSheet();});
 socket.on('state',s=>{
   const old=state;if(rollRequest){const currentId=rollRequest.challengeId,incomingId=s.pending?.challengeId||null;if(!s.pending||s.pending.failed||incomingId!==currentId)clearRollRequest();} state=s;roomCode=s.code||roomCode;
   if(!me)return;
@@ -220,26 +518,26 @@ socket.on('state',s=>{
 
 function renderLobby(){
   show('lobby'); const p=player(); if(!p)return;
-  $('youLabel').textContent=`${classInfo[p.cls].icon} ${p.name} — ${p.cls}`;
-  $('heroGift').innerHTML=`<b>${classInfo[p.cls].gift.split(' — ')[0]}</b> — ${esc(classInfo[p.cls].gift.split(' — ')[1]||'')}`;
-  $('readyBadge').textContent=p.ready?'Ready':'Building';$('readyBadge').classList.toggle('ready',p.ready);
+  $('youLabel').textContent=`${classInfo[p.cls].icon} ${p.name} — ${runtimeUi(p.cls)}`;
+  $('heroGift').innerHTML=`<b>${esc(characterText(classInfo[p.cls].gift))}</b>`;
+  $('readyBadge').textContent=runtimeUi(p.ready?'Ready':'Building');$('readyBadge').classList.toggle('ready',p.ready);
   $('stats').innerHTML='';
-  skills.forEach(sk=>{const row=document.createElement('div');row.className='stat '+(classInfo[p.cls].fav.includes(sk)?'favored':'');row.innerHTML=`<span>${classInfo[p.cls].fav.includes(sk)?'<span class="fav-star">★</span> ':''}${sk}</span><button type="button" aria-label="Decrease ${sk}">−</button><strong>${Number(myStats[sk]||0)}</strong><button type="button" aria-label="Increase ${sk}">+</button>`;const bs=row.querySelectorAll('button');bs[0].onclick=()=>{if(!p.ready&&Number(myStats[sk]||0)>0){myStats[sk]=Number(myStats[sk]||0)-1;renderLobby();}};bs[1].onclick=()=>{if(!p.ready&&Number(myStats[sk]||0)<5&&used()<20){myStats[sk]=Number(myStats[sk]||0)+1;renderLobby();}};bs.forEach(b=>b.disabled=p.ready);$('stats').appendChild(row);});
+  skills.forEach(sk=>{const row=document.createElement('div');row.className='stat '+(classInfo[p.cls].fav.includes(sk)?'favored':'');row.innerHTML=`<span>${classInfo[p.cls].fav.includes(sk)?'<span class="fav-star">★</span> ':''}${runtimeSkill(sk)}</span><button type="button" aria-label="${runtimeUi('Decrease')} ${runtimeSkill(sk)}">−</button><strong>${Number(myStats[sk]||0)}</strong><button type="button" aria-label="${runtimeUi('Increase')} ${runtimeSkill(sk)}">+</button>`;const bs=row.querySelectorAll('button');bs[0].onclick=()=>{if(!p.ready&&Number(myStats[sk]||0)>0){myStats[sk]=Number(myStats[sk]||0)-1;renderLobby();}};bs[1].onclick=()=>{if(!p.ready&&Number(myStats[sk]||0)<5&&used()<20){myStats[sk]=Number(myStats[sk]||0)+1;renderLobby();}};bs.forEach(b=>b.disabled=p.ready);$('stats').appendChild(row);});
   const arcanaHelp=$('arcanaGuidance');
   if(arcanaHelp){
     const mage=p.cls==='Mage';
     arcanaHelp.innerHTML=mage
-      ?'<strong>✦ Arcana — your magical speciality</strong><span>Arcana helps you recognise ancient magic and enchantments. As a Mage, you also unlock Mana-powered spell choices during the adventure.</span>'
-      :'<strong>✦ Arcana — available to every hero</strong><span>You may assign points to Arcana to understand magical symbols and ancient devices. Only Mages can cast Mana-powered spells. You do not need Arcana to succeed in the adventure.</span>';
+      ?'<strong>✦ '+runtimeUi('Arcana — your magical speciality')+'</strong><span>'+runtimeUi('Arcana helps you recognise ancient magic and enchantments. As a Mage, you also unlock Mana-powered spell choices during the adventure.')+'</span>'
+      :'<strong>✦ '+runtimeUi('Arcana — available to every hero')+'</strong><span>'+runtimeUi('You may assign points to Arcana to understand magical symbols and ancient devices. Only Mages can cast Mana-powered spells. You do not need Arcana to succeed in the adventure.')+'</span>';
   }
   $('pointsUsed').textContent=used();$('pointsBar').style.width=Math.min(100,used()/20*100)+'%';
   $('recommendedBtn').disabled=p.ready;$('recommendedBtn').onclick=()=>{myStats={...emptyStats(),...classInfo[p.cls].build};renderLobby();};
-  $('readyBtn').disabled=p.ready||used()!==20;$('readyBtn').textContent=p.ready?'✓ Character Locked':'Lock Character';$('readyBtn').onclick=()=>socket.emit('setCharacter',{stats:myStats});
+  $('readyBtn').disabled=p.ready||used()!==20;$('readyBtn').textContent=runtimeUi(p.ready?'✓ Character Locked':'Lock Character');$('readyBtn').onclick=()=>socket.emit('setCharacter',{stats:myStats});
   $('playerCount').textContent=`${state.players.length} / 6`;
   $('lobbyPlayers').innerHTML=state.players.map(x=>playerCard(x,false)).join('');
   const host=state.hostId===me, allReady=state.players.every(x=>x.ready);
   $('startBtn').classList.toggle('hidden',!host);$('startBtn').disabled=!allReady;$('startBtn').onclick=()=>socket.emit('startGame');
-  $('lobbyHint').innerHTML=host?(allReady?'<b>Everyone is ready.</b> You can begin the expedition.':'You are the <b>host</b>. Start once every hero shows Ready.'):'Waiting for the host to begin. You can stay on this screen while everyone finishes their hero.';renderVoiceUi();syncVoicePeers();
+  $('lobbyHint').innerHTML=host?(allReady?'<b>'+runtimeUi('Everyone is ready.')+'</b> '+runtimeUi('You can begin the expedition.'):runtimeUi('You are the')+' <b>'+runtimeUi('host')+'</b>. '+runtimeUi('Start once every hero shows Ready.')):runtimeUi('Waiting for the host to begin. You can stay on this screen while everyone finishes their hero.');renderVoiceUi();syncVoicePeers();
 }
 function playerCard(p,inGame){const g=(state?.groups||[]).find(x=>(x.playerIds||[]).includes(p.id)),groupTag=state?.groups?.length>1?` · ${esc(g?.name||runtimeUi('Separated'))}`:'',role=earnedReputationTitle(p),gearBad=Number(p.gearUpgrades?.condition??3)<=0;return `<div class="player-card ${p.id===me?'you':''} ${inGame&&state.players[state.activeIndex]?.id===p.id?'active':''}"><div class="player-ident"><img class="mini-portrait" src="${portraitPath(p.cls,p.portrait)}" alt="${p.cls}"><div><b>${esc(p.name)}</b><div class="small muted">${esc(runtimeUi(p.cls))} · ${esc(runtimeUi(p.background||'Outlander'))}${role?' · '+role.title:''}${groupTag}</div></div></div><div class="small ${p.connected?'ready':'muted'}">${p.connected?'● '+runtimeUi('Online'):'○ '+runtimeUi('Away')}${gearBad?' · ⚠ '+runtimeUi('Gear'):''}</div></div>`;}
 
@@ -612,26 +910,40 @@ function openingHeroDescription(p){
     Streetwise:'with a streetwise eye for danger, lies and the quickest way out',
     Artisan:'with a craftsperson’s habit of understanding how things fit together'
   };
-  const top=Object.entries(p.stats||{}).sort((a,b)=>b[1]-a[1]).slice(0,2).map(([k,v])=>`${k} ${v}`);
+  const top=Object.entries(p.stats||{}).sort((a,b)=>b[1]-a[1]).slice(0,2).map(([k,v])=>`${runtimeSkill(k)} ${v}`);
   const role=roles[p.cls]||'an adventurer with a useful set of talents';
   const bg=backgrounds[p.background]||'';
-  return `${role}${bg?'; '+bg:''}${top.length?`. Strongest abilities: ${top.join(' and ')}.`:'.'}`;
+  return `${characterText(role)}${bg?'; '+characterText(bg):''}${top.length?`. ${runtimeUi('Strongest abilities:')} ${top.join(selectedLanguage==='nl'?' en ':' and ')}.`:'.'}`;
 }
 function openingCompanyHtml(){
   const people=(state?.players||[]);
   if(!people.length)return '';
-  return `<div class="opening-company"><div class="eyebrow">YOUR COMPANY</div><h3>The people aboard the Resolute</h3><p class="opening-company__lead">Captain Veyra has spent eighteen days learning what each of you can do. Now the expedition may finally need all of it.</p><div class="opening-company__grid">${people.map(p=>`<div class="opening-hero"><img src="${portraitPath(p.cls,p.portrait)}" alt="${esc(p.name)}"><div><b>${esc(p.name)}</b><span>${esc(p.cls)} · ${esc(p.background||'Outlander')}</span><p>${esc(openingHeroDescription(p))}</p></div></div>`).join('')}</div></div>`;
+  return `<div class="opening-company"><div class="eyebrow">${runtimeUi("YOUR COMPANY")}</div><h3>${runtimeUi("The people aboard the Resolute")}</h3><p class="opening-company__lead">${runtimeUi("Captain Veyra has spent eighteen days learning what each of you can do. Now the expedition may finally need all of it.")}</p><div class="opening-company__grid">${people.map(p=>`<div class="opening-hero"><img src="${portraitPath(p.cls,p.portrait)}" alt="${esc(p.name)}"><div><b>${esc(p.name)}</b><span>${esc(runtimeUi(p.cls))} · ${esc(runtimeUi(p.background||'Outlander'))}</span><p>${esc(openingHeroDescription(p))}</p></div></div>`).join('')}</div></div>`;
 }
 
 
-function journalQuestions(){const f=state?.flags||{},q=[];if(!f.thorne_suspect)q.push('Why did Thorne recognise Aranor’s beacon so quickly?');if(!f.heart_understood)q.push('What are the beacons actually controlling?');if(!state?.allies?.serayne)q.push('Which of Aranor’s living peoples can the company trust?');if(!state?.finalChoice&&state?.chapter>=4)q.push('Who should be allowed to control the Heart, if anyone?');return q.slice(0,5);}
+function journalQuestions(){const f=state?.flags||{},q=[];if(!f.thorne_suspect)q.push(runtimeUi('Why did Thorne recognise Aranor’s beacon so quickly?'));if(!f.heart_understood)q.push(runtimeUi('What are the beacons actually controlling?'));if(!state?.allies?.serayne)q.push(runtimeUi('Which of Aranor’s living peoples can the company trust?'));if(!state?.finalChoice&&state?.chapter>=4)q.push(runtimeUi('Who should be allowed to control the Heart, if anyone?'));return q.slice(0,5);}
 function battleState(scene){const f=state?.flags||{};const stages={siege_gate:1,siege_wave1:1,siege_choice:1,wall_push:2,wall_archers:2,wall_breach:2,lower_rescue:2,burning_lane:2,civic_hall:2,burning_courtyard:2,beacon_tower:3,final_stand:3,finale_crisis:4,last_beacon:4,final_cost:4};const stage=stages[scene];if(!stage)return null;return {title:`White City Battle · Phase ${stage}/4`,items:[['Outer Gate',f.saved_gate?'held':'contested'],['Civilians',f.saved_people?'evacuated':'at risk'],['Beacon',f.stabilised_heart?'stable':'unstable']]};}
 const restScenes=new Set(['deck_pause','shore_rest','quiet_fire','east_camp','pass_camp','cliff_camp','dust_camp']);
 function sceneKind(scene){if(restScenes.has(scene))return ['REST','rest'];if(scene==='watchtower_ambush')return ['BATTLE','battle'];if(battleState(scene))return ['BATTLE','battle'];if(/council|parley|audience|choice|warning|traitor|betrayal|guildhall|watch_house/.test(scene))return ['CONVERSATION','conversation'];if(/marsh|road|ridge|forest|cliff|docks|tunnel|ruins|tower|archive|ferry|route|gate/.test(scene))return ['EXPLORATION','exploration'];return ['STORY','story'];}
-function passiveInsight(scene,p){if(!p)return '';const bg=p.background||'Outlander';if(scene==='intro'&&p.cls==='Ranger')return `${p.name} notices every seabird is flying toward the unseen land, not away from the storm.`;if(scene==='deck_pause'&&bg==='Sailor')return `${p.name}'s sailor instincts agree with Veyra: the sea is too still for the cloud bank ahead.`;if(scene==='wreck'&&p.cls==='Engineer')return `${p.name} can already tell which parts of the wreck can still be salvaged and which are about to shift with the tide.`;if(scene==='road'&&bg==='Outlander')return `${p.name} reads the road less as ruins than as a route: water, cover and elevation matter more than the paving stones.`;if(scene==='six_mural'&&bg==='Scholar')return `${p.name} recognises that the six figures are roles in a system, not portraits of six destined people.`;if(scene==='serayne_hub'&&bg==='Artisan')return `${p.name} notices the settlement smith is repairing an Aranorian hinge with ordinary steel — proof the old metal can accept new work.`;if(scene==='white_city_camp'&&p.cls==='Knight')return `${p.name} sees that the final battle will be decided by routes and civilians as much as by defeating soldiers.`;if(scene==='beacon_keeper'&&p.cls==='Engineer')return `${p.name} notices the grounding harness has release catches on both sides. It was designed to transfer a living operator, not entomb one forever.`;return '';}
+function passiveInsight(scene,p){
+ if(!p)return '';
+ const bg=p.background||'Outlander';
+ const samples={
+  intro:[p.cls==='Ranger',`notices every seabird is flying toward the unseen land, not away from the storm.`,`ziet dat alle zeevogels naar het onbekende land vliegen, niet weg van de storm.`],
+  deck_pause:[bg==='Sailor',`feels as a sailor that the sea is too still for the cloud bank ahead.`,`voelt als zeeman aan dat de zee veel te stil is voor de wolkenbank voor jullie.`],
+  wreck:[p.cls==='Engineer',`can already tell which parts of the wreck can still be salvaged and which are about to shift with the tide.`,`ziet welke delen van het wrak bruikbaar zijn en welke bij het volgende tij zullen verschuiven.`],
+  road:[bg==='Outlander',`reads the road less as ruins than as a route: water, cover and elevation matter more than the paving stones.`,`ziet de weg als een route: water, beschutting en hoogte zijn belangrijker dan de stenen.`],
+  six_mural:[bg==='Scholar',`recognises that the six figures are roles in a system, not portraits of six destined people.`,`herkent dat de zes figuren rollen in een systeem voorstellen en geen portretten van uitverkorenen zijn.`],
+  serayne_hub:[bg==='Artisan',`notices the smith repairing an Aranorian hinge with ordinary steel — proof that old metal accepts new work.`,`merkt op dat de smid een Aranorisch scharnier met gewoon staal herstelt — het oude metaal kan blijkbaar worden aangepast.`],
+  white_city_camp:[p.cls==='Knight',`sees the final battle will be decided by routes and protecting civilians as much as by defeating soldiers.`,`beseft dat de eindstrijd net zo goed beslist wordt door routes en burgers te beschermen als door soldaten te verslaan.`],
+  beacon_keeper:[p.cls==='Engineer',`notices release catches on both sides of the grounding harness. It was designed to transfer an operator, not entomb one.`,`ziet aan beide kanten van het aardingsharnas ontgrendelingen. Het was bedoeld om een bediener af te lossen, niet om iemand voorgoed op te sluiten.`]
+ };
+ const item=samples[scene];return item?.[0]?`${p.name} ${item[selectedLanguage==='nl'?2:1]}`:'';
+}
 function itemCallback(scene){const items=state?.items||[];const checks=[['watchtower_ambush','wayfinder_compass','The stolen Wayfinder Compass is twitching toward the old road.'],['goblin_border','goblin_token','Nim’s token could change how the sentries receive you.'],['goblin_border','wayfinder_compass','The stolen Wayfinder Compass keeps pulling toward a fern-hidden approach.'],['traitor_reveal','silver_key','The Silver Key has finally reached the lock it seems made for.'],['mountain_gate','map_fragment','Your Map Fragments may fit the gate markings.'],['heart_chamber','sunsteel_shield','The Sunsteel Shield may let someone approach the Heart safely.'],['final_road','signal_horn','Veyra’s Signal Horn could call people who still owe the company a debt.']];for(const [s,id,text] of checks)if(scene===s&&items.includes(id))return text;return '';}
-function renderQualityPanels(scene){const [label,kind]=sceneKind(scene),badge=$('sceneKindBadge');if(badge){badge.textContent=label;badge.className=`scene-kind ${kind}`;}const pi=$('passiveInsight'),hero=player(),ins=(hero&&(classNarrativeInsights[hero.cls]?.[scene]||''))||(passiveInsight(scene,hero));if(pi){pi.classList.toggle('hidden',!ins);pi.innerHTML=ins?`<b>Character instinct:</b> ${esc(ins)}`:'';}const ic=$('itemCallback'),item=itemCallback(scene);if(ic){ic.classList.toggle('hidden',!item);ic.innerHTML=item?`<b>Something you carry may matter:</b> ${esc(item)}`:'';}const bs=$('battleState'),b=battleState(scene);if(bs){bs.classList.toggle('hidden',!b);bs.innerHTML=b?`<div class="battle-title">${esc(b.title)}</div><div class="battle-track">${b.items.map(x=>`<span><b>${esc(x[0])}</b>${esc(x[1])}</span>`).join('')}</div>`:'';}document.body.classList.toggle('threat-high',(state?.threat||0)>=5);document.body.classList.toggle('hope-low',(state?.hope||0)<=1);document.body.classList.toggle('supplies-empty',(state?.supplies||0)===0);}
-function renderRecap(){const b=$('recapBody');if(!b||!state)return;const j=state.journal||{people:{},clues:[],decisions:[],conclusions:[]},qs=journalQuestions(),events=(state.log||[]).slice(-8).reverse();b.innerHTML=`<div class="recap-grid"><section><div class="eyebrow">WHERE YOU ARE</div><h3>${esc(scenes[state.scene]?.title||'Current scene')}</h3><p>${esc(scenes[state.scene]?.mission||'')}</p></section><section><div class="eyebrow">RECENTLY</div>${events.length?events.map(x=>`<div class="recap-event">${esc(x)}</div>`).join(''):'<p class="muted">The journey has only just begun.</p>'}</section><section><div class="eyebrow">UNANSWERED QUESTIONS</div>${qs.length?qs.map(x=>`<div class="recap-question">? ${esc(x)}</div>`).join(''):'<p class="muted">The biggest questions have been answered.</p>'}</section><section><div class="eyebrow">KEY DECISIONS</div>${(j.decisions||[]).slice(-5).map(x=>`<div class="recap-event"><b>${esc(x.title)}</b><br>${esc(x.text)}</div>`).join('')||'<p class="muted">No major decision has been recorded yet.</p>'}</section></div>`;}
+function renderQualityPanels(scene){const [label,kind]=sceneKind(scene),badge=$('sceneKindBadge');if(badge){badge.textContent=runtimeUi(label);badge.className=`scene-kind ${kind}`;}const pi=$('passiveInsight'),hero=player(),ins=(hero&&(classNarrativeInsights[hero.cls]?.[scene]||''))||(passiveInsight(scene,hero));if(pi){pi.classList.toggle('hidden',!ins);pi.innerHTML=ins?`<b>${runtimeUi("Character instinct:")}</b> ${esc(runtimeUi(ins))}`:'';}const ic=$('itemCallback'),item=itemCallback(scene);if(ic){ic.classList.toggle('hidden',!item);ic.innerHTML=item?`<b>${runtimeUi("Something you carry may matter:")}</b> ${esc(runtimeUi(item))}`:'';}const bs=$('battleState'),b=battleState(scene);if(bs){bs.classList.toggle('hidden',!b);bs.innerHTML=b?`<div class="battle-title">${esc(b.title.replace('White City Battle',runtimeUi('White City Battle')).replace('Phase',runtimeUi('Phase')))}</div><div class="battle-track">${b.items.map(x=>`<span><b>${esc(runtimeUi(x[0]))}</b>${esc(runtimeUi(x[1]))}</span>`).join('')}</div>`:'';}document.body.classList.toggle('threat-high',(state?.threat||0)>=5);document.body.classList.toggle('hope-low',(state?.hope||0)<=1);document.body.classList.toggle('supplies-empty',(state?.supplies||0)===0);}
+function renderRecap(){const b=$('recapBody');if(!b||!state)return;const j=state.journal||{people:{},clues:[],decisions:[],conclusions:[]},qs=journalQuestions(),events=(state.log||[]).slice(-8).reverse();b.innerHTML=`<div class="recap-grid"><section><div class="eyebrow">${runtimeUi('WHERE YOU ARE')}</div><h3>${esc(localizedScene(state.scene)?.title||'Current scene')}</h3><p>${esc(localizedScene(state.scene)?.mission||'')}</p></section><section><div class="eyebrow">${runtimeUi('RECENTLY')}</div>${events.length?events.map(x=>`<div class="recap-event">${esc(localizeLogLine(x))}</div>`).join(''):'<p class="muted">The journey has only just begun.</p>'}</section><section><div class="eyebrow">${runtimeUi('UNANSWERED QUESTIONS')}</div>${qs.length?qs.map(x=>`<div class="recap-question">? ${esc(x)}</div>`).join(''):`<p class="muted">${runtimeUi('The biggest questions have been answered.')}</p>`}</section><section><div class="eyebrow">${runtimeUi('KEY DECISIONS')}</div>${(j.decisions||[]).slice(-5).map(x=>`<div class="recap-event"><b>${esc(runtimeUi(x.title))}</b><br>${esc(runtimeUi(x.text))}</div>`).join('')||`<p class="muted">${runtimeUi('No major decision has been recorded yet.')}</p>`}</section></div>`;}
 function openRecap(){renderRecap();$('recapModal')?.classList.remove('hidden');}function closeRecap(){$('recapModal')?.classList.add('hidden');}if($('recapBtn'))$('recapBtn').onclick=openRecap;if($('sessionRecapBtn'))$('sessionRecapBtn').onclick=openRecap;if($('recapClose'))$('recapClose').onclick=closeRecap;if($('recapModal'))$('recapModal').addEventListener('click',e=>{if(e.target===$('recapModal'))closeRecap();});
 function duckAmbience(){if(!ambientMaster)return;const anyone=localSpeaking||[...voiceSpeaking.values()].some(Boolean);try{const ctx=playSound.ctx;if(ctx)ambientMaster.gain.setTargetAtTime(anyone?.18:.62,ctx.currentTime,.08);else ambientMaster.gain.value=anyone?.18:.62;}catch{}}
 
@@ -707,14 +1019,14 @@ function refreshSceneLocale(){
 function renderGame(){
   show('game');const sc=localizedScene(state.scene);if(!sc)return;updateAmbience(state.scene);renderVoiceUi();syncVoicePeers();
   $('sceneTitle').textContent=sc.title;$('sceneText').innerHTML=sc.text.map(x=>`<p>${esc(x)}</p>`).join('')+(state.scene==='intro'?openingCompanyHtml():'');$('mission').textContent=sc.mission;const bridge=$('storyBridge');if(bridge){if(pendingStoryBridge&&pendingStoryBridge.scene===state.scene){bridge.innerHTML=`<p>${esc(pendingStoryBridge.text)}</p>`;bridge.classList.remove('hidden');}else bridge.classList.add('hidden');}
-  const art=sceneArt[state.scene]||['🧭',sc.title],image=sceneImages[state.scene]||'assets/lost_home.jpg';const [icon,caption]=art;$('sceneArt').className=`scene-art ${state.scene}`;$('sceneArt').style.backgroundImage=`url('${image}')`;$('sceneArt').querySelector('.scene-art__caption').textContent=caption;renderNpcMoment(state.scene);renderFinaleCallbacks(state.scene);renderQualityPanels(state.scene);
+  const art=sceneArt[state.scene]||['🧭',sc.title],image=sceneImages[state.scene]||'assets/lost_home.jpg';const [icon,caption]=art;$('sceneArt').className=`scene-art ${state.scene}`;$('sceneArt').style.backgroundImage=`url('${image}')`;$('sceneArt').querySelector('.scene-art__caption').textContent=runtimeUi(caption);renderNpcMoment(state.scene);renderFinaleCallbacks(state.scene);renderQualityPanels(state.scene);
   $('round').textContent=state.round;$('hope').textContent=state.hope;$('threat').textContent=state.threat;$('supplies').textContent=state.supplies;$('relics').textContent=state.relics;if($('coin'))$('coin').textContent=state.coin||0;if($('pressureNote')){$('pressureNote').textContent=threatStatusText(state.threat);$('pressureNote').className='pressure-note '+(state.threat>=5?'high':state.threat>=3?'mid':'low');}
   const active=state.players[state.activeIndex],mine=active?.id===me,waiting=(state.groups||[]).find(g=>g.id===state.currentGroupId)?.waitingMerge;$('turnNotice').className='turn-notice'+(mine?' mine':'');$('turnNotice').innerHTML=waiting?`<b>${esc(state.currentGroupName||runtimeUi('Your group'))} ${runtimeUi('has reached the rendezvous.')}</b> ${runtimeUi('The other group is still on its route.')}`:mine?`<b>${runtimeUi('Your turn,')} ${esc(active.name)}.</b> ${runtimeUi('Choose what your hero does next.')}${state.groups?.length>1?` <span class="group-badge">${esc(state.currentGroupName)}</span>`:''}`:`${runtimeUi('Waiting for')} <b>${esc(active?.name||'')}</b>${state.groups?.length>1?` · ${esc((state.groups||[]).find(g=>(g.playerIds||[]).includes(active?.id))?.name||runtimeUi('another group'))}`:''}.`;
   $('choices').innerHTML=''; if(!state.pending){const extra=specialistChoiceSets[state.scene]?.[active?.cls];const actionChoices=extra?[...sc.choices,extra]:sc.choices;actionChoices.forEach(choice=>{const [id,label,note]=choice,available=requirementSatisfied(choice)&&(!id.startsWith('spell_')||(active?.milestone||0)>=1&&(active?.energy||0)>=(id==='spell_seal'?2:1));const b=document.createElement('button');b.className='choice';b.disabled=!mine||!available;b.innerHTML=`<b>${esc(sceneLocaleText(label))}</b><span>${esc(sceneLocaleText(note))}${available?'':' · '+esc(sceneLocaleText('NOT CURRENTLY AVAILABLE'))}</span>`;b.onclick=()=>socket.emit('chooseAction',{action:id});$('choices').appendChild(b);});}
-  renderMiniHero();renderChallenge(mine);renderHostTools();renderInventory();renderJourney();$('party').innerHTML=state.players.map(p=>playerCard(p,true)).join('');$('log').innerHTML=state.log.slice().reverse().map(x=>`<div class="log-item">• ${esc(x)}</div>`).join('');renderLastRoll();
+  renderMiniHero();renderChallenge(mine);renderHostTools();renderInventory();renderJourney();$('party').innerHTML=state.players.map(p=>playerCard(p,true)).join('');$('log').innerHTML=state.log.slice().reverse().map(x=>`<div class="log-item">• ${esc(localizeLogLine(x))}</div>`).join('');renderLastRoll();
 }
 
-function renderJournal(){const j=state?.journal||{people:{},clues:[],decisions:[],conclusions:[]},body=$('journalBody');if(!body)return;const people=Object.values(j.people||{}),clues=j.clues||[],decisions=j.decisions||[],conclusions=j.conclusions||[],questions=journalQuestions();body.innerHTML=`<div class="journal-grid"><section><div class="eyebrow">PEOPLE</div>${people.length?people.map(p=>`<div class="journal-entry"><b>${esc(p.name||p.id)}</b>${p.status?`<span class="journal-status">${esc(p.status)}</span>`:''}<p>${esc(p.note||'You have crossed paths.')}</p></div>`).join(''):'<p class="small muted">Important relationships will appear here.</p>'}</section><section><div class="eyebrow">CLUES & CONCLUSIONS</div>${conclusions.map(x=>`<div class="journal-entry conclusion"><b>✦ ${esc(x.title)}</b><p>${esc(x.text)}</p></div>`).join('')}${clues.length?clues.map(x=>`<div class="journal-entry"><b>${esc(x.title)}</b><p>${esc(x.text)}</p></div>`).join(''):'<p class="small muted">Useful information will be recorded here.</p>'}</section><section><div class="eyebrow">UNANSWERED QUESTIONS</div>${questions.length?questions.map(x=>`<div class="journal-entry question"><b>? ${esc(x)}</b></div>`).join(''):'<p class="small muted">Nothing obvious remains unanswered.</p>'}</section><section><div class="eyebrow">DECISIONS</div>${decisions.length?decisions.map(x=>`<div class="journal-entry"><b>${esc(x.title)}</b><p>${esc(x.text)}</p></div>`).join(''):'<p class="small muted">Major choices will be remembered here.</p>'}</section></div>`;}
+function renderJournal(){const j=state?.journal||{people:{},clues:[],decisions:[],conclusions:[]},body=$('journalBody');if(!body)return;const people=Object.values(j.people||{}),clues=j.clues||[],decisions=j.decisions||[],conclusions=j.conclusions||[],questions=journalQuestions();body.innerHTML=`<div class="journal-grid"><section><div class="eyebrow">${runtimeUi('PEOPLE')}</div>${people.length?people.map(p=>`<div class="journal-entry"><b>${esc(p.name||p.id)}</b>${p.status?`<span class="journal-status">${esc(p.status)}</span>`:''}<p>${esc(runtimeUi(p.note||'You have crossed paths.'))}</p></div>`).join(''):`<p class="small muted">${runtimeUi('Important relationships will appear here.')}</p>`}</section><section><div class="eyebrow">${runtimeUi('CLUES & CONCLUSIONS')}</div>${conclusions.map(x=>`<div class="journal-entry conclusion"><b>✦ ${esc(runtimeUi(x.title))}</b><p>${esc(runtimeUi(x.text))}</p></div>`).join('')}${clues.length?clues.map(x=>`<div class="journal-entry"><b>${esc(runtimeUi(x.title))}</b><p>${esc(runtimeUi(x.text))}</p></div>`).join(''):`<p class="small muted">${runtimeUi('Useful information will be recorded here.')}</p>`}</section><section><div class="eyebrow">${runtimeUi('UNANSWERED QUESTIONS')}</div>${questions.length?questions.map(x=>`<div class="journal-entry question"><b>? ${esc(x)}</b></div>`).join(''):`<p class="small muted">${runtimeUi('Nothing obvious remains unanswered.')}</p>`}</section><section><div class="eyebrow">${runtimeUi('DECISIONS')}</div>${decisions.length?decisions.map(x=>`<div class="journal-entry"><b>${esc(runtimeUi(x.title))}</b><p>${esc(runtimeUi(x.text))}</p></div>`).join(''):`<p class="small muted">${runtimeUi('Major choices will be remembered here.')}</p>`}</section></div>`;}
 function openJournal(){renderJournal();$('journalModal')?.classList.remove('hidden');}
 function closeJournal(){$('journalModal')?.classList.add('hidden');}
 if($('journalBtn'))$('journalBtn').onclick=openJournal;if($('journalClose'))$('journalClose').onclick=closeJournal;if($('journalModal'))$('journalModal').addEventListener('click',e=>{if(e.target===$('journalModal'))closeJournal();});
@@ -726,15 +1038,15 @@ function renderHeroSheet(){
   body.innerHTML=`
     <div class="hero-sheet-summary">
       <img class="hero-sheet-portrait" src="${portraitPath(p.cls,p.portrait)}" alt="${p.cls} portrait">
-      <div><h3>${classInfo[p.cls].icon} ${esc(p.name)} — ${p.cls}</h3><p>${esc(classInfo[p.cls].gift)}</p><p class="small muted"><b>${esc(p.background||'Outlander')} background:</b> ${esc(backgrounds[p.background||'Outlander']?.text||'')} · Edge: +1 ${esc(backgrounds[p.background||'Outlander']?.edge||'Survival')}</p><div class="hero-sheet-chips"><span>Wounds ${p.wounds}/3</span><span>Growth ${p.growth}/5</span><span>Expedition stage ${p.milestone||0}/3</span>${['Mage','Monk'].includes(p.cls)?`<span>${p.cls==='Mage'?'Mana':'Focus'} ${p.energy||0}/${p.maxEnergy||0}</span>`:''}<span>${unspent} Skill Point${unspent===1?'':'s'} available</span>${p.talent?`<span>Talent: ${esc(p.talent)}</span>`:''}</div></div>
+      <div><h3>${classInfo[p.cls].icon} ${esc(p.name)} — ${esc(runtimeUi(p.cls))}</h3><p>${esc(characterText(classInfo[p.cls].gift))}</p><p class="small muted"><b>${esc(runtimeUi(p.background||'Outlander'))} ${runtimeUi('background')}:</b> ${esc(characterText(backgrounds[p.background||'Outlander']?.text||''))} · ${runtimeUi('Edge')}: +1 ${esc(runtimeSkill(backgrounds[p.background||'Outlander']?.edge||'Survival'))}</p><div class="hero-sheet-chips"><span>${runtimeUi('Wounds')} ${p.wounds}/3</span><span>${runtimeUi('Growth')} ${p.growth}/5</span><span>${runtimeUi('Expedition stage')} ${p.milestone||0}/3</span>${['Mage','Monk'].includes(p.cls)?`<span>${p.cls==='Mage'?'Mana':'Focus'} ${p.energy||0}/${p.maxEnergy||0}</span>`:''}<span>${unspent} ${runtimeUi(unspent===1?'Skill Point available':'Skill Points available')}</span>${p.talent?`<span>${runtimeUi('Talent:')} ${esc(p.talent)}</span>`:''}</div></div>
     </div>
-    <div class="hero-sheet-section"><div class="eyebrow">YOUR CLASS PATH</div><p>${(p.pathUpgrades||[]).length?esc(p.pathUpgrades.join(' · ')):'Explore Aranor to unlock three expedition milestones for every hero.'}</p>${['Mage','Monk'].includes(p.cls)?`<p>${p.cls==='Mage'?'Arcana helps uncover magic and mechanisms. You can also spend Mana on unique spell choices at ancient gates and chambers.':'Spend Focus for +1 on a relevant roll.'} Mana and Focus replenish at milestones and through exploration.</p><button class="btn btn-primary" id="channelPowerBtn" ${!p.energy||p.empowered||!state.pending?'disabled':''}>Channel ${p.cls==='Mage'?'Mana':'Focus'} (+1)</button>`:''}</div>
-    <div class="hero-sheet-section"><div class="section-heading"><div><div class="eyebrow">SKILLS</div><h3>Current abilities</h3></div><div class="small muted">Starting cap 5 · Campaign cap 7</div></div>
-      <div class="hero-skill-grid">${skills.map(sk=>`<div class="hero-skill"><span>${classInfo[p.cls].fav.includes(sk)?'★ ':''}${sk}</span><strong>${p.stats[sk]}</strong>${unspent>0&&p.stats[sk]<7?`<button class="btn btn-primary btn-small grow-skill" data-skill="${sk}">+1</button>`:''}</div>`).join('')}</div>
-      ${unspent?'<p class="growth-help">Choose where to spend your earned Skill Point. The choice is permanent for this campaign.</p>':'<p class="small muted">Participating in challenges earns Growth. Every 5 Growth becomes one Skill Point you can allocate here.</p>'}
+    <div class="hero-sheet-section"><div class="eyebrow">${runtimeUi("YOUR CLASS PATH")}</div><p>${(p.pathUpgrades||[]).length?esc(p.pathUpgrades.join(' · ')):'${runtimeUi("Explore Aranor to unlock three expedition milestones for every hero.")}'}</p>${['Mage','Monk'].includes(p.cls)?`<p>${p.cls==='Mage'?runtimeUi('Arcana helps uncover magic and mechanisms. You can also spend Mana on unique spell choices at ancient gates and chambers.'):runtimeUi('Spend Focus for +1 on a relevant roll.')} ${runtimeUi("Mana and Focus replenish at milestones and through exploration.")}</p><button class="btn btn-primary" id="channelPowerBtn" ${!p.energy||p.empowered||!state.pending?'disabled':''}>${runtimeUi('Channel')} ${p.cls==='Mage'?'Mana':'Focus'} (+1)</button>`:''}</div>
+    <div class="hero-sheet-section"><div class="section-heading"><div><div class="eyebrow">${runtimeUi("SKILLS")}</div><h3>${runtimeUi("Current abilities")}</h3></div><div class="small muted">${runtimeUi("Starting cap 5 · Campaign cap 7")}</div></div>
+      <div class="hero-skill-grid">${skills.map(sk=>`<div class="hero-skill"><span>${classInfo[p.cls].fav.includes(sk)?'★ ':''}${esc(runtimeSkill(sk))}</span><strong>${p.stats[sk]}</strong>${unspent>0&&p.stats[sk]<7?`<button class="btn btn-primary btn-small grow-skill" data-skill="${sk}">+1</button>`:''}</div>`).join('')}</div>
+      ${unspent?'<p class="growth-help">${runtimeUi("Choose where to spend your earned Skill Point. The choice is permanent for this campaign.")}</p>':'<p class="small muted">${runtimeUi("Participating in challenges earns Growth. Every 5 Growth becomes one Skill Point you can allocate here.")}</p>'}
     </div>
-    ${!p.talent&&Object.values(p.stats||{}).some(v=>v>=6)?`<div class="hero-sheet-section talent-choice"><div class="eyebrow">ADVANCED PATH UNLOCKED</div><h3>Choose one permanent talent</h3><p class="small muted">Reaching 6 in a skill marks a turning point for your hero.</p><div id="talentChoices"></div></div>`:''}
-    <div class="hero-sheet-section"><div class="eyebrow">EQUIPMENT & IDENTITY</div>${earnedReputationTitle(p)?`<div class="earned-title"><span>${earnedReputationTitle(p).icon}</span><div><b>${esc(earnedReputationTitle(p).title)}</b><small>Earned through repeated choices and successful actions.</small></div></div>`:''}<p><b>Equipment:</b> ${esc(p.gear||'None')}</p><div class="condition-meter"><span>Condition</span><div class="condition-track"><i style="width:${Math.max(0,Math.min(100,(Number(p.gearUpgrades?.condition??3)/Number(p.gearUpgrades?.maxCondition||3))*100))}%"></i></div><b>${esc(gearConditionText(p))}</b></div>${Number(p.gearUpgrades?.condition??3)<=0?`<div class="gear-warning">Your equipment is damaged. Upgrade bonuses are offline until a smith repairs it.</div>`:''}<p><b>Upgrades:</b> ${esc((p.gearUpgrades?.labels||[]).slice(-6).join(' · ')||'None yet')}</p>${p.gearUpgrades?.aranorianBinding?`<p class="binding-note"><b>◈ Aranorian binding:</b> +1 on dangerous checks involving ancient guardians, beacon machinery and Heart systems.</p>`:''}${Number(p.gearUpgrades?.serviceUses||0)>0?`<p><b>Fresh service:</b> +1 remains for ${Number(p.gearUpgrades.serviceUses)} dangerous combat check${Number(p.gearUpgrades.serviceUses)===1?'':'s'}.</p>`:''}<div class="reputation-grid">${Object.entries(p.reputation||{}).map(([k,v])=>`<div><span>${(reputationTitleMap[k]||[k,'✦'])[1]} ${(reputationTitleMap[k]||[k])[0]}</span><b>${Number(v||0)}</b></div>`).join('')}</div><p><b>Private insights discovered:</b> ${privateClues.length}</p><div class="clue-journal">${privateClues.length?privateClues.map(c=>`<div class="clue-entry"><b>${esc(c.title)}</b><span>${esc(c.text)}</span></div>`).join(''):'<div class="small muted">Any personal clues your hero notices will be saved here for later reference.</div>'}</div><p class="small muted" style="margin-top:10px"><b>Dice mastery:</b> Skills at 6+ roll with Advantage. An earned reputation at 3+ adds +1 when an action clearly fits that identity.</p></div>`;
+    ${!p.talent&&Object.values(p.stats||{}).some(v=>v>=6)?`<div class="hero-sheet-section talent-choice"><div class="eyebrow">${runtimeUi("ADVANCED PATH UNLOCKED")}</div><h3>${runtimeUi("Choose one permanent talent")}</h3><p class="small muted">${runtimeUi("Reaching 6 in a skill marks a turning point for your hero.")}</p><div id="talentChoices"></div></div>`:''}
+    <div class="hero-sheet-section"><div class="eyebrow">${runtimeUi("EQUIPMENT & IDENTITY")}</div>${earnedReputationTitle(p)?`<div class="earned-title"><span>${earnedReputationTitle(p).icon}</span><div><b>${esc(earnedReputationTitle(p).title)}</b><small>${runtimeUi("Earned through repeated choices and successful actions.")}</small></div></div>`:''}<p><b>${runtimeUi("Equipment:")}</b> ${esc(p.gear||'None')}</p><div class="condition-meter"><span>${runtimeUi("Condition")}</span><div class="condition-track"><i style="width:${Math.max(0,Math.min(100,(Number(p.gearUpgrades?.condition??3)/Number(p.gearUpgrades?.maxCondition||3))*100))}%"></i></div><b>${esc(gearConditionText(p))}</b></div>${Number(p.gearUpgrades?.condition??3)<=0?`<div class="gear-warning">Your equipment is damaged. Upgrade bonuses are offline until a smith repairs it.</div>`:''}<p><b>${runtimeUi("Upgrades:")}</b> ${esc((p.gearUpgrades?.labels||[]).slice(-6).join(' · ')||'None yet')}</p>${p.gearUpgrades?.aranorianBinding?`<p class="binding-note"><b>◈ ${runtimeUi("Aranorian binding:")}</b> +1 on dangerous checks involving ancient guardians, beacon machinery and Heart systems.</p>`:''}${Number(p.gearUpgrades?.serviceUses||0)>0?`<p><b>${runtimeUi("Fresh service:")}</b> +1 remains for ${Number(p.gearUpgrades.serviceUses)} dangerous combat check${Number(p.gearUpgrades.serviceUses)===1?'':'s'}.</p>`:''}<div class="reputation-grid">${Object.entries(p.reputation||{}).map(([k,v])=>`<div><span>${(reputationTitleMap[k]||[k,'✦'])[1]} ${(reputationTitleMap[k]||[k])[0]}</span><b>${Number(v||0)}</b></div>`).join('')}</div><p><b>${runtimeUi("Private insights discovered:")}</b> ${privateClues.length}</p><div class="clue-journal">${privateClues.length?privateClues.map(c=>`<div class="clue-entry"><b>${esc(c.title)}</b><span>${esc(c.text)}</span></div>`).join(''):'<div class="small muted">Any personal clues your hero notices will be saved here for later reference.</div>'}</div><p class="small muted" style="margin-top:10px"><b>${runtimeUi("Dice mastery:")}</b> Skills at 6+ roll with Advantage. An earned reputation at 3+ adds +1 when an action clearly fits that identity.</p></div>`;
   body.querySelector('#channelPowerBtn')?.addEventListener('click',()=>socket.emit('channelPower'));
   body.querySelectorAll('.grow-skill').forEach(b=>b.onclick=()=>{const sk=b.dataset.skill;if(confirm(`Increase ${sk} from ${p.stats[sk]} to ${p.stats[sk]+1}?`))socket.emit('allocateSkillPoint',{skill:sk});});
   const tbox=body.querySelector('#talentChoices');if(tbox&&!p.talent){const opts=state.talentCatalog?.[p.cls]||{};tbox.innerHTML=Object.entries(opts).map(([name,v])=>`<button class="choice talent-btn" data-talent="${name}"><b>${name}</b><span>${esc(v.desc)}</span></button>`).join('');tbox.querySelectorAll('.talent-btn').forEach(b=>b.onclick=()=>{if(confirm(`Choose ${b.dataset.talent} as your permanent advanced talent?`))socket.emit('chooseTalent',{talent:b.dataset.talent});});}
@@ -746,7 +1058,7 @@ function renderMiniHero(){
   const extra=['Mage','Monk'].includes(p.cls)
     ? `<span>${p.cls==='Mage'?'Mana':'Focus'} <b>${Number(p.energy||0)}/${Number(p.maxEnergy||0)}</b></span>`
     : `<span>Growth <b>${Number(p.growth||0)}/5</b></span>`;
-  box.innerHTML=`<div class="mini-hero-identity"><img src="${portraitPath(p.cls,p.portrait)}" alt="${esc(p.name)} portrait"><div><strong>${esc(p.name)}</strong><span>${esc(p.cls)} · ${esc(p.background||'Outlander')}</span>${earnedReputationTitle(p)?`<small>${esc(earnedReputationTitle(p).title)}</small>`:''}</div></div><div class="mini-hero-stats"><span>Health <b>${hp}/3</b></span>${extra}<span>Skill points <b>${Number(p.skillPoints||0)}</b></span></div>`;
+  box.innerHTML=`<div class="mini-hero-identity"><img src="${portraitPath(p.cls,p.portrait)}" alt="${esc(p.name)} portrait"><div><strong>${esc(p.name)}</strong><span>${esc(runtimeUi(p.cls))} · ${esc(runtimeUi(p.background||'Outlander'))}</span>${earnedReputationTitle(p)?`<small>${esc(earnedReputationTitle(p).title)}</small>`:''}</div></div><div class="mini-hero-stats"><span>${runtimeUi('Health')} <b>${hp}/3</b></span>${extra}<span>${runtimeUi('Skill points')} <b>${Number(p.skillPoints||0)}</b></span></div>`;
   const btn=$('miniHeroOpen');if(btn)btn.textContent=(p.skillPoints||0)>0?'Spend Skill Points / Hero Sheet →':'Open Hero Sheet →';
 }
 function openHeroSheet(){renderHeroSheet();$('heroSheetModal').classList.remove('hidden');}
@@ -854,7 +1166,7 @@ function renderEnding(){
   if(state.flags?.saved_gate)callbacks.push('The western gate held because the company chose to fight for it.');if(state.flags?.saved_people)callbacks.push('Families escaped the lower ward because the company chose people over position.');if(state.flags?.stabilised_heart)callbacks.push('The Heart never reached full runaway power because someone stayed at the controls.');
   if(state.flags?.beacon_handoff_solution)callbacks.push('Enough fragments of Aranor’s history survived to reveal the keeper handoff procedure.');
   const memorial=state.finalChoice==='hero_sacrifice'&&sacrificed?`<div class="memorial-card"><div class="eyebrow">ARANOR REMEMBERS</div><h2>${esc(sacrificed.name)}</h2><p>${esc(sacrificed.name)} gave up the road home so the rest of the company could have one. A lamp is kept burning at the Last Beacon in their name.</p></div>`:state.finalChoice==='veyra_sacrifice'?`<div class="memorial-card"><div class="eyebrow">ARANOR REMEMBERS</div><h2>Captain Veyra</h2><p>The first new chart of Aranor carries her name beside the coast where the Resolute was lost: SHE BROUGHT US HOME.</p></div>`:state.finalChoice==='vael_sacrifice'?`<div class="memorial-card"><div class="eyebrow">ARANOR REMEMBERS</div><h2>Commander Vael</h2><p>His legacy remains disputed, but nobody disputes the final order he gave at the Last Beacon: leave the tower, and let them live.</p></div>`:'';
-  $('endingText').innerHTML=`<p class="finale-lead">${esc(choices[state.finalChoice]||choices.steward)}</p><p><b>The company’s chosen future:</b> ${esc(config)}.</p>${memorial}${allies.length?`<p><b>When the Last Beacon was surrounded, these allies answered:</b> ${allies.map(esc).join(', ')}.</p>`:'<p>The company reaches the end with few allies — but reaches it together.</p>'}${callbacks.length?`<div class="ending-callbacks"><b>What your journey changed</b><ul>${callbacks.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}${routeNames.length?`<p><b>Roads taken:</b> ${routeNames.map(esc).join(', ')}.</p>`:''}${trusted.length?`<p><b>Relationships carried to the end:</b> ${trusted.map(esc).join(', ')}.</p>`:''}${remainingItems.length?`<p><b>Still in the company’s pack:</b> ${remainingItems.map(esc).join(', ')}.</p>`:''}<h2>The Company at Journey’s End</h2>${state.players.map(p=>`<div class="epilogue ${p.sacrificed?'sacrificed':''}"><b>${classInfo[p.cls]?.icon||'✦'} ${esc(p.name)} — ${p.cls}${p.sacrificed?' · LAST KEEPER':''}</b><p>${p.sacrificed?`${esc(p.name)} did not return from the Last Beacon. Their choice became part of every later telling of the expedition.`:heroEpilogue(p)}</p><span>Highest skill: ${strongestSkill(p)} · Wounds ${p.wounds}/3 · Unspent Skill Points ${p.skillPoints||0}</span></div>`).join('')}<p class="finale-close"><b>The Resolute came searching for a lost continent.</b><br>What returned — or what remained behind — became part of Aranor’s history.</p>`;
+  $('endingText').innerHTML=`<p class="finale-lead">${esc(choices[state.finalChoice]||choices.steward)}</p><p><b>${runtimeUi('The company’s chosen future:')}</b> ${esc(config)}.</p>${memorial}${allies.length?`<p><b>${runtimeUi('When the Last Beacon was surrounded, these allies answered:')}</b> ${allies.map(esc).join(', ')}.</p>`:'<p>The company reaches the end with few allies — but reaches it together.</p>'}${callbacks.length?`<div class="ending-callbacks"><b>${runtimeUi('What your journey changed')}</b><ul>${callbacks.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}${routeNames.length?`<p><b>${runtimeUi('Roads taken:')}</b> ${routeNames.map(esc).join(', ')}.</p>`:''}${trusted.length?`<p><b>${runtimeUi('Relationships carried to the end:')}</b> ${trusted.map(esc).join(', ')}.</p>`:''}${remainingItems.length?`<p><b>${runtimeUi('Still in the company’s pack:')}</b> ${remainingItems.map(esc).join(', ')}.</p>`:''}<h2>${runtimeUi("The Company at Journey’s End")}</h2>${state.players.map(p=>`<div class="epilogue ${p.sacrificed?'sacrificed':''}"><b>${classInfo[p.cls]?.icon||'✦'} ${esc(p.name)} — ${runtimeUi(p.cls)}${p.sacrificed?' · '+runtimeUi('LAST KEEPER'):''}</b><p>${p.sacrificed?`${esc(p.name)} did not return from the Last Beacon. Their choice became part of every later telling of the expedition.`:heroEpilogue(p)}</p><span>${runtimeUi('Highest skill:')} ${strongestSkill(p)} · ${runtimeUi('Wounds')} ${p.wounds}/3 · ${runtimeUi('Unspent Skill Points')} ${p.skillPoints||0}</span></div>`).join('')}<p class="finale-close"><b>The Resolute came searching for a lost continent.</b><br>What returned — or what remained behind — became part of Aranor’s history.</p>`;
   document.querySelector('.next-session').innerHTML='<button id="printChronicle" class="btn btn-primary" type="button">Save / Print Expedition Chronicle</button><div class="eyebrow">THE END</div><h2>Your Aranor is now part of the campaign record.</h2><p>Different roads, relationships, discoveries, equipment, failures and final sacrifices can produce a substantially different expedition.</p>';
   document.getElementById('printChronicle')?.addEventListener('click',()=>window.print());
   playSound('success');
@@ -1384,7 +1696,7 @@ function setInterfaceLanguage(lang){
  menu.querySelectorAll('[data-lang]').forEach(item=>item.addEventListener('click',()=>{setInterfaceLanguage(item.dataset.lang);menu.classList.add('hidden');btn.setAttribute('aria-expanded','false');}));
  document.addEventListener('click',e=>{if(!e.target.closest('.language-control')){menu.classList.add('hidden');btn.setAttribute('aria-expanded','false');}});
  document.addEventListener('keydown',e=>{if(e.key==='Escape'){menu.classList.add('hidden');btn.setAttribute('aria-expanded','false');}});
- setInterfaceLanguage(selectedLanguage);
+ // Language initialization happens after all localisation declarations are available.
 })();
 
 
@@ -1542,6 +1854,8 @@ const i18nAttributeSources=new WeakMap();
 function updateLanguageAttributes(){
  const lang=selectedLanguage;
  document.querySelectorAll('select option,[title],[placeholder],[aria-label],[alt]').forEach(el=>{
+  // Character creation selects are rendered explicitly with stable canonical IDs.
+  if(el.matches('option')&&el.closest('#createClass,#joinClass,#createBackground,#joinBackground'))return;
   const record=i18nAttributeSources.get(el)||{};
   const keys=el.matches('option')?['textContent']:['title','placeholder','aria-label','alt'];
   for(const key of keys){
@@ -1832,6 +2146,7 @@ setInterfaceLanguage=function(lang){
  updateLocaleAttributes();
  if(typeof refreshSavedCampaignUI==='function')refreshSavedCampaignUI();
  if(state?.scene&&$('game')&&!$('game').classList.contains('hidden')){renderGame();}
+ refreshCharacterCreationLocale();
  document.dispatchEvent(new CustomEvent('aranor:language-changed',{detail:{lang:selectedLanguage}}));
 };
 const languageAttributesObserver=new MutationObserver(()=>{
